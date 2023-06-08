@@ -7,7 +7,7 @@ RTC_DS3231 rtc;
 // Global variables and structs:
 int useDegrees = 1;             // Input (geographic position) and output are in degrees
 int useNorthEqualsZero = 1;     // Azimuth: 0 = South, pi/2 (90deg) = West  ->  0 = North, pi/2 (90deg) = East
-int computeRefrEquatorial = 0;  // Compure refraction-corrected equatorial coordinates (Hour angle, declination): 0-no, 1-yes
+int computeRefrEquatorial = 0;  // Compute refraction-corrected equatorial coordinates (Hour angle, declination): 0-no, 1-yes
 int computeDistance = 0;        // Compute the distance to the Sun in AU: 0-no, 1-yes
 
 struct STTime time;               // Struct for date and time variables
@@ -26,28 +26,18 @@ void setup() {
       Serial.println("RTC lost power, let's set the time!");
       // When time needs to be set on a new device, or after a power loss, the
       // following line sets the RTC to the date & time this sketch was compiled
-      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-      // This line sets the RTC with an explicit date & time, for example to set
-      // January 21, 2014 at 3am you would call:
-      // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+      // plus 4 hours to adjust from eastern time to universal time
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__))+TimeSpan(0, 4, 0, 0));
     }
+
+    loc.longitude   = -71.2639859;  // Olin College of Engineering
+    loc.latitude    = 42.2929003;
+    loc.pressure    = 100.0;      // Atmospheric pressure in kPa
+    loc.temperature = 290.3;      // Atmospheric temperature in K
 }
 
-void loop() {
+void loop() {    
   solTrack_computeAndPrintSunPos(rtc.now());
-
-  // Serial.print(now.year(), DEC);
-  // Serial.print('/');
-  // Serial.print(now.month(), DEC);
-  // Serial.print('/');
-  // Serial.print(now.day(), DEC);
-  // Serial.print(" ");
-  // Serial.print(now.hour(), DEC);
-  // Serial.print(':');
-  // Serial.print(now.minute(), DEC);
-  // Serial.print(':');
-  // Serial.print(now.second(), DEC);
-  // Serial.println();
 }
 
 void solTrack_computeAndPrintSunPos(DateTime dt) {
@@ -62,14 +52,14 @@ void solTrack_computeAndPrintSunPos(DateTime dt) {
   // Compute Sun position:
   struct STPosition pos;
   SolTrack(time, loc, &pos, useDegrees, useNorthEqualsZero, computeRefrEquatorial, computeDistance);
-	
+
   // Write formatted output to serial connection:
-	char outputLine[256], secStr[7], JDstr[13], agstStr[11], azStr[9],altStr[8];
+	char outputLine[256], secStr[7], JDstr[13], agstStr[11], azStr[9],altStr[9];
 	dtostrf(time.second,         6, 3, secStr);   //  6 digits, 3 decimals
 	dtostrf(pos.julianDay,      12, 6, JDstr);    // 14 digits, 6 decimals
 	dtostrf(pos.agst*R2H,       10, 7, agstStr);  // 10 digits, 7 decimals
 	dtostrf(pos.azimuthRefract,  8, 3, azStr);    //  8 digits, 3 decimals
-	dtostrf(pos.altitudeRefract, 7, 3, altStr);   //  8 digits, 3 decimals
+	dtostrf(pos.altitudeRefract, 8, 3, altStr);   //  8 digits, 3 decimals
 	
 	sprintf(outputLine, "%d-%2.2d-%2.2d %2.2d:%2.2d:%s %s %s %s %s %s",
 					time.year, time.month, time.day, time.hour,time.minute,secStr,
