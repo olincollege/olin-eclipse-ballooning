@@ -1107,11 +1107,11 @@
         )
       )
     )
-    (symbol "Mechanical:MountingHole" (pin_names (offset 1.016)) (in_bom yes) (on_board yes)
-      (property "Reference" "H" (at 0 5.08 0)
+    (symbol "Mechanical:MountingHole_Pad" (pin_numbers hide) (pin_names (offset 1.016) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "H" (at 0 6.35 0)
         (effects (font (size 1.27 1.27)))
       )
-      (property "Value" "MountingHole" (at 0 3.175 0)
+      (property "Value" "MountingHole_Pad" (at 0 4.445 0)
         (effects (font (size 1.27 1.27)))
       )
       (property "Footprint" "" (at 0 0 0)
@@ -1123,16 +1123,22 @@
       (property "ki_keywords" "mounting hole" (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (property "ki_description" "Mounting Hole without connection" (at 0 0 0)
+      (property "ki_description" "Mounting Hole with connection" (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (property "ki_fp_filters" "MountingHole*" (at 0 0 0)
+      (property "ki_fp_filters" "MountingHole*Pad*" (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (symbol "MountingHole_0_1"
-        (circle (center 0 0) (radius 1.27)
+      (symbol "MountingHole_Pad_0_1"
+        (circle (center 0 1.27) (radius 1.27)
           (stroke (width 1.27) (type default))
           (fill (type none))
+        )
+      )
+      (symbol "MountingHole_Pad_1_1"
+        (pin input line (at 0 -2.54 90) (length 2.54)
+          (name "1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
         )
       )
     )
@@ -2233,13 +2239,38 @@
     (property "Datasheet" "~" (at 99.06 181.61 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 091ae966-d638-4556-8fc6-62acec0a1f20))
-    (pin "2" (uuid 7db82779-c8ac-42a9-8d48-dfd3b78af512))
-    (pin "3" (uuid f9ebb4ab-f0b5-4ab2-83b6-3c7d5301d949))
+    (pin "1" (uuid 87803db9-7223-4d8c-ac7d-ac74649c7a9f))
+    (pin "2" (uuid f1fde807-bdf9-44e4-8927-770774a70946))
+    (pin "3" (uuid 70879570-fb54-4d63-a77e-f598db83273d))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "J6") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Mechanical:MountingHole_Pad") (at 250.19 133.35 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 048c709a-1e9a-48d0-8c3b-43e72efc6bc2)
+    (property "Reference" "H3" (at 252.73 130.81 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "MountingHole_Pad" (at 252.73 133.35 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_Pad" (at 250.19 133.35 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 250.19 133.35 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 38beabce-74ff-4311-9efc-95022a605133))
+    (instances
+      (project "geiger-counter"
+        (path "/7804f9af-0587-435d-9482-64f925891946"
+          (reference "H3") (unit 1)
         )
       )
     )
@@ -2260,8 +2291,8 @@
     (property "Datasheet" "~" (at 123.19 143.51 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid a8d4d260-3854-41fd-8e09-42b67c9bf919))
-    (pin "2" (uuid ef5d1765-990e-4f56-9dae-a053b6f43b7f))
+    (pin "1" (uuid e175fd3e-5d6e-4f04-a10f-a86c15560d6f))
+    (pin "2" (uuid f68d6b0b-2d2e-4428-9680-006da1b55f34))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2286,8 +2317,8 @@
     (property "Datasheet" "~" (at 156.21 36.83 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid e07755c6-792e-4b15-9735-df235d56973e))
-    (pin "2" (uuid d0a763b4-0935-41a9-8551-719e40376dd7))
+    (pin "1" (uuid 08687510-51d7-4f1f-b757-485126941a9c))
+    (pin "2" (uuid 3b95e238-021c-4b83-9189-4fe667607b07))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2312,7 +2343,7 @@
     (property "Datasheet" "" (at 93.98 179.07 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid ad9dd164-a155-4108-a50d-d98b4c5b7f64))
+    (pin "1" (uuid 274fdecd-3a5c-444a-8c74-610f2357c3ed))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2337,12 +2368,12 @@
     (property "Datasheet" "~" (at 55.88 107.95 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 2dc833cc-d8ce-4776-851c-fbdcf2cc6de4))
-    (pin "2" (uuid e46a59c4-5b9e-4487-bbca-9fe8da436f14))
-    (pin "3" (uuid 6a001757-be34-471b-81a8-6bd136029f59))
-    (pin "4" (uuid 65b19064-3a8c-49d7-8807-151620f90f92))
-    (pin "5" (uuid d43228ae-f94e-49f3-8ee3-a4332c546a36))
-    (pin "6" (uuid 90d5efac-8a77-4daa-bc45-a6b94944209a))
+    (pin "1" (uuid 1638f425-6f66-4536-9f57-bd5997cb7646))
+    (pin "2" (uuid c23d1821-6a77-4eef-9abf-482e619e1c2d))
+    (pin "3" (uuid f7de61a5-4ebd-4114-850f-14cab9f5a00a))
+    (pin "4" (uuid 5be1d0cd-da7d-4ef1-96ee-f37ae4654636))
+    (pin "5" (uuid d3f8de13-2205-4ff7-9045-ea9392555fa2))
+    (pin "6" (uuid df0c6dd2-ec80-48d2-95e5-8653e42c9e78))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2367,7 +2398,7 @@
     (property "Datasheet" "" (at 124.46 171.45 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 51ca7ba1-8c48-4c67-a167-3fe174960603))
+    (pin "1" (uuid 6e0a0428-dc75-4255-a3e8-d0bf657b4643))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2392,9 +2423,9 @@
     (property "Datasheet" "~" (at 113.03 74.93 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 38a8fcf4-1f7b-4315-8207-3822d964db40))
-    (pin "2" (uuid 068364ec-45ef-4676-bde7-8830243d5d66))
-    (pin "3" (uuid e20adcb0-c666-4713-b50c-e5de5842e3d3))
+    (pin "1" (uuid 7f3d6f71-056f-4625-a348-bf3ee6748048))
+    (pin "2" (uuid 2e0fa1a1-3d63-4951-8c01-d574f0f8e543))
+    (pin "3" (uuid 72e6dabb-6574-4b0a-88ff-531f5e065fef))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2419,7 +2450,7 @@
     (property "Datasheet" "" (at 101.6 60.96 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 8c4a2a13-da2d-4a20-bacd-b1037aabd577))
+    (pin "1" (uuid dcce37b7-9ed4-4051-9e6a-2b6a986ad862))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2444,8 +2475,8 @@
     (property "Datasheet" "~" (at 180.34 112.776 90)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 7e4a4e9e-fb62-4966-a94c-f49b0700616c))
-    (pin "2" (uuid 15b4299b-9896-40ae-bd46-ba11802831b5))
+    (pin "1" (uuid c566d830-ae36-4cbb-9f3c-e97efb0651f7))
+    (pin "2" (uuid 2f848322-8930-4357-81db-1abaf37888ac))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2470,7 +2501,7 @@
     (property "Datasheet" "" (at 69.85 121.92 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid ebb28ebe-faea-4212-ac86-2c6b3354cc16))
+    (pin "1" (uuid f97f61aa-aedd-4fd7-9b61-9888095b2f0d))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2495,7 +2526,7 @@
     (property "Datasheet" "" (at 72.39 110.49 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 6c7469af-e0ed-41ce-99f5-7b8503e73ab9))
+    (pin "1" (uuid cf2c1740-7cad-44c9-85bd-d9795d771b87))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2520,7 +2551,7 @@
     (property "Datasheet" "" (at 93.98 184.15 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 51774cf8-b9fc-4fac-ba6f-6d9c0416ff19))
+    (pin "1" (uuid 2f6b10ae-7cb2-47c1-b1d8-ec0a54008f80))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2545,7 +2576,7 @@
     (property "Datasheet" "" (at 43.18 121.92 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 86eecaa3-2a2c-40ca-956e-611ac6a767f7))
+    (pin "1" (uuid 5da32109-9dd4-4edd-a700-d6b73c3fb0d8))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2570,7 +2601,7 @@
     (property "Datasheet" "" (at 30.48 82.55 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid a32b39eb-76cf-481c-b4b0-a94f51017108))
+    (pin "1" (uuid 4c7b05b7-e940-4cfb-bf61-172791573aa0))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2595,7 +2626,7 @@
     (property "Datasheet" "" (at 134.62 143.51 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 3b97612b-5825-4018-9e77-145d4781741b))
+    (pin "1" (uuid b5031e22-85ee-4362-9b23-969c7a80aab1))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2620,7 +2651,7 @@
     (property "Datasheet" "" (at 113.03 82.55 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 7fe40950-8b26-406f-af44-de88b62902a3))
+    (pin "1" (uuid 66e75d50-92fd-4b77-8f87-6c3a9e6651d6))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2645,7 +2676,7 @@
     (property "Datasheet" "" (at 214.63 62.23 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 548e7806-ac42-4128-9bb3-4c0c9836c660))
+    (pin "1" (uuid 2dc95363-e5cd-48ec-8e41-c950d96afb4e))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2670,7 +2701,7 @@
     (property "Datasheet" "" (at 209.55 120.65 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 550ec534-7753-4425-96d0-7cf309357182))
+    (pin "1" (uuid bb214a59-5aed-4cfd-9053-dac670bf0384))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2695,7 +2726,7 @@
     (property "Datasheet" "" (at 182.88 148.59 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid cf611c84-954c-4028-98a4-037360632f4d))
+    (pin "1" (uuid 183a0959-a702-4946-8c48-88b7cb0cc931))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2720,11 +2751,36 @@
     (property "Datasheet" "" (at 41.91 146.05 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid f15cb132-2d8c-4d3f-93f3-af753f3daa18))
+    (pin "1" (uuid 0a040f2a-aedc-4649-a864-565cdfa98dea))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "#PWR08") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Mechanical:MountingHole_Pad") (at 250.19 107.95 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 60aca182-f083-4cb4-9c32-5ac17eea117a)
+    (property "Reference" "H1" (at 252.73 105.41 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "MountingHole_Pad" (at 252.73 107.95 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_Pad" (at 250.19 107.95 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 250.19 107.95 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 0a3e5082-5e18-4713-a1f1-6a7333801932))
+    (instances
+      (project "geiger-counter"
+        (path "/7804f9af-0587-435d-9482-64f925891946"
+          (reference "H1") (unit 1)
         )
       )
     )
@@ -2745,7 +2801,7 @@
     (property "Datasheet" "" (at 231.14 25.4 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid a45da234-d9d3-4e82-999c-fc8740d4597a))
+    (pin "1" (uuid 7d5835df-318f-4f1a-b059-51e34fba69ad))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2770,14 +2826,14 @@
     (property "Datasheet" "http://www.ti.com/lit/ds/symlink/tlc555.pdf" (at 72.39 59.69 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 159a9e06-2861-4fac-90dd-53e5f08a4193))
-    (pin "8" (uuid 4e4b81a3-c465-490d-9819-b34f30875f9a))
-    (pin "2" (uuid aebf0bef-f6e3-4187-8e36-8569ea534920))
-    (pin "3" (uuid 1d04f17c-df4c-4cfe-8052-729ba569cf27))
-    (pin "4" (uuid e782177a-0003-4a22-9132-b91b6166de59))
-    (pin "5" (uuid 8ba2f877-ae37-40bd-9eb0-541911d2ce48))
-    (pin "6" (uuid 9b88feae-9b17-4d79-a707-54a00c3293f9))
-    (pin "7" (uuid e36e4abf-a8e0-4b53-8d6e-4f8e59f80d01))
+    (pin "1" (uuid a05c97a7-1202-43d5-98f9-e8c966b448e8))
+    (pin "8" (uuid 7f736851-82dc-4070-bb95-b8865716f226))
+    (pin "2" (uuid a645f6f8-97dc-45cb-8ea2-76588afd85e5))
+    (pin "3" (uuid 6bebd6be-e232-4c22-bb0e-326f9fb6528f))
+    (pin "4" (uuid 845d122a-14ae-4f04-b8f6-96831d6d9e7a))
+    (pin "5" (uuid 58064746-3987-461c-ba58-66720eb89710))
+    (pin "6" (uuid da3a25ff-6efa-4bf3-a3db-f1dc8ee7c843))
+    (pin "7" (uuid 33177aef-c60c-4ef6-9f65-a286fb2bc55b))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2802,8 +2858,8 @@
     (property "Datasheet" "RS1JFA" (at 135.89 30.48 0)
       (effects (font (size 1.27 1.27) italic) hide)
     )
-    (pin "1" (uuid 1c9e9772-0ea0-4876-a610-223ccdeb4b82))
-    (pin "2" (uuid 5c801003-2ac2-4288-b0c6-c640d423706a))
+    (pin "1" (uuid e07fa9ff-682c-4ad4-863f-1b6fe4f2fff6))
+    (pin "2" (uuid 775e1d3f-f3ff-4e89-b412-7ff5f6e55785))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2828,7 +2884,7 @@
     (property "Datasheet" "~" (at 182.88 133.35 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 224536c8-de6f-49c7-aace-9ea157c62fc1))
+    (pin "1" (uuid 2dff70eb-fe79-4343-b35e-9da3ab1b0c9b))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2853,26 +2909,26 @@
     (property "Datasheet" "http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-2543-AVR-ATtiny2313_Datasheet.pdf" (at 69.85 149.86 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid de0c98e0-3dbd-40f4-8ef3-6ff9f0e38b84))
-    (pin "10" (uuid 6a790c2c-ce9e-4c0b-b306-fa83d51bf140))
-    (pin "11" (uuid e9e045cd-ae87-4d51-bb5a-55c8ce879c5a))
-    (pin "12" (uuid 4462b706-b4df-4c80-8680-a4078c9c0bc0))
-    (pin "13" (uuid 8a707c0e-3e4f-44c4-bc1b-1ffea593308a))
-    (pin "14" (uuid ecc83d39-fa09-4fe0-a110-7237166290e0))
-    (pin "15" (uuid 3b270eea-ebdb-453c-82f2-7c8b757e8f01))
-    (pin "16" (uuid 153716b0-fae4-4fb0-bf46-9e5a5da048f3))
-    (pin "17" (uuid 0f129b84-d5ed-4b14-9394-85afe787ed1c))
-    (pin "18" (uuid bb284317-56ba-4eff-a7d3-3a6352f8719c))
-    (pin "19" (uuid 0ef93b98-385b-4d02-9e7d-9eb02ac08b59))
-    (pin "2" (uuid 9ff7fa0a-8c6b-43ef-a446-d80598e0a63b))
-    (pin "20" (uuid 6d671686-3540-4774-9ae5-a0db84772708))
-    (pin "3" (uuid fede9340-5fda-45af-9d4d-3935dfc71a1a))
-    (pin "4" (uuid 5f7e56a7-427f-4c4d-a475-5275e735cd88))
-    (pin "5" (uuid 32607360-81d1-4a8a-a35d-8ac1f8f91960))
-    (pin "6" (uuid edceb3ef-530d-4652-b288-76054cc91bcc))
-    (pin "7" (uuid 30ab6cc9-b3d2-43c4-8859-0a4457c50c87))
-    (pin "8" (uuid 18829374-e5f8-4018-8321-1182d7a2c81c))
-    (pin "9" (uuid f5c5c053-25c5-446f-aa2d-e55bbdafe8a1))
+    (pin "1" (uuid ebf5fdd7-7db8-41b4-bb89-88fcc4df74e1))
+    (pin "10" (uuid 226c9696-9cf1-4e51-a7b5-d4d5ce099fa8))
+    (pin "11" (uuid d67d55dd-f531-4be7-bd90-364f8747cad8))
+    (pin "12" (uuid 1e80bd71-359d-4db0-a291-351fe631a561))
+    (pin "13" (uuid 354cadf1-0a9a-401b-81b8-52a54d29f904))
+    (pin "14" (uuid 8dbaa5de-931a-484e-9fb0-0bccb2e82591))
+    (pin "15" (uuid 681118b8-a04e-47ca-985e-d79d7ab519f7))
+    (pin "16" (uuid 546c4b2f-d303-4c9d-8551-34a3157e494d))
+    (pin "17" (uuid 0b1af28a-0084-4311-b9a4-f9dc654a3812))
+    (pin "18" (uuid 7b773370-5e25-4c9a-8ed7-0f58fbb87d69))
+    (pin "19" (uuid c1f57fce-9743-47dc-a2a6-500c6579c47d))
+    (pin "2" (uuid 600e3dd6-51f7-4cde-8804-4beb43a6db14))
+    (pin "20" (uuid 40bc9369-c63f-4960-a653-c39480c3ec36))
+    (pin "3" (uuid 7729a7f5-8eb2-4650-9e3d-769fcb751b38))
+    (pin "4" (uuid 6d5b8389-b821-44a1-b751-9c8bcd970ad6))
+    (pin "5" (uuid b934a0bd-a92b-47d0-adfb-bad021272e67))
+    (pin "6" (uuid 81d17374-df30-444b-a373-ffbaee09f672))
+    (pin "7" (uuid 9d861bbd-1d26-455b-9c7d-beede4187e80))
+    (pin "8" (uuid 4bb0bd35-fb68-4fc8-89e7-bb219aa9c369))
+    (pin "9" (uuid 24c6c901-31ff-47c6-886d-8f40eef72c50))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2897,8 +2953,8 @@
     (property "Datasheet" "~" (at 209.55 113.03 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 11f9216f-0310-43f9-8ef6-3f4db5ba80ca))
-    (pin "2" (uuid c48b579a-3c19-4b47-bf4b-552bc5b3191d))
+    (pin "1" (uuid 4bc3be1f-0a55-48bf-91d3-1d96a2ef7965))
+    (pin "2" (uuid fdd75428-b6c3-416b-99e1-a63ecf7b5ea0))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2923,9 +2979,9 @@
     (property "Datasheet" "~" (at 196.85 105.41 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 75035289-0f0e-4e2f-a7ab-60a84fa18673))
-    (pin "2" (uuid e308a74c-109f-4ee7-896f-65bd4effbe51))
-    (pin "3" (uuid 4e5544ce-8289-4720-9bff-063c876052c8))
+    (pin "1" (uuid ac46c452-8e42-4848-90b8-a14242dd513f))
+    (pin "2" (uuid 2d401012-7fcf-4230-8dfc-f3bf3da45f9c))
+    (pin "3" (uuid 8f5464ab-25ac-44e0-8211-d096d8665759))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2950,8 +3006,8 @@
     (property "Datasheet" "~" (at 101.6 31.75 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 75241499-1651-40e2-ba4e-6975d8cc4075))
-    (pin "2" (uuid 64df5c6a-9feb-453a-800f-e6a760ead998))
+    (pin "1" (uuid a5e94954-c460-4b94-8f9b-ca17a7eeba88))
+    (pin "2" (uuid 887e5804-0b8f-4fc3-9f25-17dcf9c7bf78))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -2976,7 +3032,7 @@
     (property "Datasheet" "" (at 72.39 105.41 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid dcc5a2fc-77fb-4f48-b157-3278bf6fd2d5))
+    (pin "1" (uuid 2f63bdf9-ba9f-4b1d-aa14-e5bb94124c8b))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3001,8 +3057,8 @@
     (property "Datasheet" "~" (at 224.79 113.03 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 20e48d67-c09d-457b-8039-096d6c37e01d))
-    (pin "2" (uuid 1a9f10d7-dcdd-497d-815a-be4df504c612))
+    (pin "1" (uuid e89371d4-5980-4171-b09b-809f9f73700c))
+    (pin "2" (uuid 69226047-53f0-4f84-9145-7c81f56b9ebb))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3027,8 +3083,8 @@
     (property "Datasheet" "~" (at 231.14 29.21 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid d67c7545-555a-413c-85a5-6e14a953540e))
-    (pin "2" (uuid fbf4f81c-1727-4aed-8b4c-94fec91f98b7))
+    (pin "1" (uuid ae9bf6fe-be14-4dd0-a8d5-a79548096180))
+    (pin "2" (uuid 1ebc0939-6103-4cf2-8d05-bc86cb1114a1))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3053,8 +3109,8 @@
     (property "Datasheet" "~" (at 87.63 44.45 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid b45b202c-e4ea-4584-99c4-8b92b3cd6b79))
-    (pin "2" (uuid 76fbf212-f4fc-4957-afa4-881c6cceaa89))
+    (pin "1" (uuid a530881a-410e-43e7-9c20-ac07b9d2ca7c))
+    (pin "2" (uuid 21073618-7bc5-4522-beca-6d1dce1724b3))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3079,12 +3135,37 @@
     (property "Datasheet" "~" (at 30.48 78.74 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 8a35462b-434a-4cfd-a4d1-12a11408e6ea))
-    (pin "2" (uuid 7a1d71c5-737a-4d7d-8ffa-2eaac9b7d4b6))
+    (pin "1" (uuid 631b9446-f498-4714-b30a-4368ca6053e9))
+    (pin "2" (uuid 8a87810c-2bc5-412c-8d62-a7bc69a41fa3))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "R8") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "power:GND") (at 250.19 123.19 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
+    (uuid 81c6e79b-80cf-43ce-b2a3-1c674c54d654)
+    (property "Reference" "#PWR032" (at 250.19 129.54 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 250.19 127 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 250.19 123.19 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 250.19 123.19 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid b7fc40b0-d920-4791-90ca-a3fff7819f0c))
+    (instances
+      (project "geiger-counter"
+        (path "/7804f9af-0587-435d-9482-64f925891946"
+          (reference "#PWR032") (unit 1)
         )
       )
     )
@@ -3105,9 +3186,9 @@
     (property "Datasheet" "https://www.onsemi.com/pub/Collateral/2N3903-D.PDF" (at 104.14 55.88 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
-    (pin "1" (uuid 0c161be7-711e-4f94-89a3-2a0e3f45d250))
-    (pin "2" (uuid b516c218-1da1-4031-84a3-7d098b6a3c9e))
-    (pin "3" (uuid b2b7cad7-85ce-4c8e-a267-eee68391a207))
+    (pin "1" (uuid bd6ab913-c41f-4720-a2df-a66bdc2e3c1d))
+    (pin "2" (uuid 0d36db6c-34a6-4ce1-b7d5-601f8356fe81))
+    (pin "3" (uuid 35b6c450-40b8-405a-99d8-6d23b41ce309))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3132,7 +3213,7 @@
     (property "Datasheet" "" (at 134.62 55.88 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 1f54e5cf-36a6-4ab4-906c-590159143f6b))
+    (pin "1" (uuid 0927175c-57f2-47ce-855b-42daf75d501e))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3157,7 +3238,7 @@
     (property "Datasheet" "" (at 194.31 133.35 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 22a89897-0570-4b16-b463-8dfe6f62f83a))
+    (pin "1" (uuid 33d0dc72-234b-4cad-83f5-37edb2b283c3))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3182,8 +3263,8 @@
     (property "Datasheet" "~" (at 214.63 41.91 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 8677f7cd-3600-4c1b-afb0-b4c237c396ba))
-    (pin "2" (uuid 446a358a-cab6-4217-9484-7d8a30eec497))
+    (pin "1" (uuid 0ca74ad3-7853-4f60-9418-271381dea7be))
+    (pin "2" (uuid 37cc855b-efe9-415c-b78a-2e80dc0a2cef))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3208,7 +3289,7 @@
     (property "Datasheet" "~" (at 194.31 133.35 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 74e84c7d-8bba-4f92-aeca-858af42b9e84))
+    (pin "1" (uuid 5d77c654-7fe8-4272-af76-95db51d0019d))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3233,7 +3314,7 @@
     (property "Datasheet" "" (at 182.88 133.35 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 2dc751d0-7301-427e-a37d-c3884284379e))
+    (pin "1" (uuid 2c57edd0-3cfc-43a5-aa43-fdbdfb87618b))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3258,35 +3339,11 @@
     (property "Datasheet" "" (at 109.22 171.45 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 09fac6de-9c4b-43e7-9793-6b68f9978b04))
+    (pin "1" (uuid b0658c7a-1879-432f-b322-a8b7ad061184))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "#PWR011") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "Mechanical:MountingHole") (at 251.46 104.14 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
-    (uuid a6abfd90-964c-4a2c-9ad9-a5ffe8a6a5b6)
-    (property "Reference" "H1" (at 254 102.87 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "MountingHole" (at 254 105.41 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad_TopOnly" (at 251.46 104.14 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 251.46 104.14 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (instances
-      (project "geiger-counter"
-        (path "/7804f9af-0587-435d-9482-64f925891946"
-          (reference "H1") (unit 1)
         )
       )
     )
@@ -3307,8 +3364,8 @@
     (property "Datasheet" "~" (at 80.01 78.74 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid f103f9ce-bced-4b73-b4c0-07756cef9832))
-    (pin "2" (uuid 83267cae-9253-4e1d-8413-f57dfa0e3859))
+    (pin "1" (uuid 35198292-3edd-4e78-804c-d18943c5f3a5))
+    (pin "2" (uuid 87c21696-3644-448a-ac48-75590690c0d7))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3333,8 +3390,8 @@
     (property "Datasheet" "~" (at 214.63 55.88 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid ea7c69ed-4310-466b-bcdf-3b9891d6048e))
-    (pin "2" (uuid 040a8ac9-1d0d-4e0b-ad9d-1aa287a05de9))
+    (pin "1" (uuid 0ac7dbd5-4ba5-423f-95e1-eccc59f1b8c5))
+    (pin "2" (uuid ecd53700-277b-4251-b9c3-81f66ac377ae))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3359,7 +3416,7 @@
     (property "Datasheet" "" (at 50.8 39.37 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 3847f7b3-f97e-43a7-85d2-021b85d7958b))
+    (pin "1" (uuid 28c65649-80b1-49c1-959e-c01973375acc))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3384,35 +3441,11 @@
     (property "Datasheet" "" (at 50.8 59.69 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid c6c2b7a4-019c-40f9-9fc3-c1a9c6c7c2b3))
+    (pin "1" (uuid 61e64f26-5715-44bc-8054-adfad320cb2f))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "#PWR019") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "Mechanical:MountingHole") (at 251.46 111.76 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
-    (uuid b53d84b3-ae60-4465-baeb-318721a78d9b)
-    (property "Reference" "H2" (at 254 110.49 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "MountingHole" (at 254 113.03 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad_TopOnly" (at 251.46 111.76 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 251.46 111.76 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (instances
-      (project "geiger-counter"
-        (path "/7804f9af-0587-435d-9482-64f925891946"
-          (reference "H2") (unit 1)
         )
       )
     )
@@ -3433,37 +3466,13 @@
     (property "Datasheet" "https://www.21yangjie.com/style/pdf/small-signal-triode/MMBTA44-SOT23-%E6%B5%B7%E9%B8%A5%E8%84%9A.pdf" (at 137.16 49.53 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid bb3e19b2-7616-4958-8514-898f9ac0535c))
-    (pin "2" (uuid a998c98b-7345-4cab-a18f-ca84faae4515))
-    (pin "3" (uuid 22374173-01d8-451c-9067-8c88f63c3ae5))
+    (pin "1" (uuid 722b82d0-9611-43a4-b084-af428a5ff962))
+    (pin "2" (uuid cf96279c-c6c4-4bf5-8382-32fcfbfbfb26))
+    (pin "3" (uuid bc7958aa-9cfe-4f37-ae66-ba0b5a45c0d3))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "Q1") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "Mechanical:MountingHole") (at 251.46 119.38 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
-    (uuid ba1ad6ed-07a1-4c33-9fc2-aaa9e54eca19)
-    (property "Reference" "H3" (at 254 118.11 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "MountingHole" (at 254 120.65 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad_TopOnly" (at 251.46 119.38 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 251.46 119.38 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (instances
-      (project "geiger-counter"
-        (path "/7804f9af-0587-435d-9482-64f925891946"
-          (reference "H3") (unit 1)
         )
       )
     )
@@ -3484,11 +3493,36 @@
     (property "Datasheet" "" (at 201.93 57.15 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid ce887bcd-6dc8-4565-845d-c820df6b7fb0))
+    (pin "1" (uuid 44b031f1-35e1-4b71-8035-6bdbb72b0e28))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "#PWR03") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "power:GND") (at 250.19 110.49 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
+    (uuid bcdb06bd-4d07-4ba6-a882-e8875bf3973e)
+    (property "Reference" "#PWR033" (at 250.19 116.84 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 250.19 114.3 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 250.19 110.49 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 250.19 110.49 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid d4adc844-8e26-45e9-a6f1-8e3a5b4cff6d))
+    (instances
+      (project "geiger-counter"
+        (path "/7804f9af-0587-435d-9482-64f925891946"
+          (reference "#PWR033") (unit 1)
         )
       )
     )
@@ -3509,8 +3543,8 @@
     (property "Datasheet" "~" (at 43.18 125.73 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid b52fce52-b5ce-4164-8bd7-06ee3a22b55b))
-    (pin "2" (uuid 338e413c-c0f2-4957-a1e3-683da79b279d))
+    (pin "1" (uuid 636b53fa-1272-425b-8d1c-4927d890d42e))
+    (pin "2" (uuid 9c24c691-635e-4ed5-b787-83d60373707f))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3559,9 +3593,9 @@
     (property "Arrow Price/Stock" "https://www.arrow.com/en/products/cstne8m00g550000r0/murata-manufacturing?region=nac" (at 54.61 158.75 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
-    (pin "1" (uuid 06db7292-6178-4b43-8b7e-8e053c57e7fb))
-    (pin "2" (uuid 05d44f41-be43-4cc4-8141-3c312bb443b8))
-    (pin "3" (uuid 53a06536-12bd-4573-a0ca-182db010648d))
+    (pin "1" (uuid 1be6eb0c-54b4-4f30-9d27-824abb5b504e))
+    (pin "2" (uuid 77c2bc6a-39ff-49bc-8f87-0b0c6702cdf4))
+    (pin "3" (uuid 43490548-ce2e-4a18-b746-2f267579c9cd))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3586,8 +3620,8 @@
     (property "Datasheet" "~" (at 134.62 45.72 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 81344fc7-74ae-45e8-ba9d-50d834dc08ea))
-    (pin "2" (uuid 08775532-21e0-41f8-86cc-efcc5b6ce288))
+    (pin "1" (uuid 3a8ef81f-2d32-4d45-8597-2be6ba3e4f06))
+    (pin "2" (uuid 105912f7-d8b1-43ce-a32f-43ac4b9a86a4))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3612,8 +3646,8 @@
     (property "Datasheet" "RS1JFA" (at 86.36 77.47 0)
       (effects (font (size 1.27 1.27) italic) hide)
     )
-    (pin "1" (uuid 75a4dbcc-5c10-45fa-bbf6-e4c4abede8c6))
-    (pin "2" (uuid 279515c0-b5d9-4b24-977c-64d7e849be00))
+    (pin "1" (uuid 693de94c-25ea-4499-998f-bfaacc9231ad))
+    (pin "2" (uuid 8d9e6e70-0b57-4e08-a2f4-059a387bf9e4))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3638,9 +3672,9 @@
     (property "Datasheet" "https://www.onsemi.com/pub/Collateral/2N3903-D.PDF" (at 228.6 48.26 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
-    (pin "1" (uuid db9b8dca-a773-4183-9ba1-8f6ab1e8e5a2))
-    (pin "2" (uuid c8e95376-5ac3-40d2-bf3f-18debf4206fa))
-    (pin "3" (uuid 857b1334-f14b-4f5a-b2cd-812fb3f19a64))
+    (pin "1" (uuid d9b995d7-79de-4886-a333-99a58b425378))
+    (pin "2" (uuid df1db902-0745-4893-880a-7a79d114c3e9))
+    (pin "3" (uuid b1208d4b-3945-4961-9a61-1a3e2b36c522))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3665,8 +3699,8 @@
     (property "Datasheet" "~" (at 114.3 166.37 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 39ff8c87-6412-418a-b19a-9cb05332e417))
-    (pin "2" (uuid b36c1a3b-cc40-47eb-a016-5a2d168396b9))
+    (pin "1" (uuid 7f3aa826-6daf-4667-9c6e-d07d836752ba))
+    (pin "2" (uuid 86f86af5-f7b8-48dd-bbbc-53ca18f65c05))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3691,8 +3725,8 @@
     (property "Datasheet" "~" (at 80.01 58.42 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 6ccac2aa-05ea-434e-9ca8-7ac488f95035))
-    (pin "2" (uuid 04b117fe-038a-4ea4-b7ce-3d81744e9e58))
+    (pin "1" (uuid d4f16761-59a1-4bbc-bc6a-c3d6197e3f53))
+    (pin "2" (uuid 02ac3293-e12f-4c2a-ab08-df420235d275))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3732,7 +3766,7 @@
     (property "MANUFACTURER" "Keystone" (at 182.88 39.37 0)
       (effects (font (size 1.27 1.27)) (justify bottom) hide)
     )
-    (pin "1" (uuid 7f68ec3a-e015-4a4d-b2b3-74466e669919))
+    (pin "1" (uuid 9d70db9d-0dec-46e8-85ed-bb7070566d49))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3757,12 +3791,12 @@
     (property "Datasheet" "~" (at 132.08 166.37 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 9f9cac86-ff97-46ae-90c1-bfd0f2d0036f))
-    (pin "2" (uuid 1c574319-d5ae-4035-92bf-756378d77a47))
-    (pin "3" (uuid 8061744f-8e34-475c-bd1d-09baba9edfbd))
-    (pin "4" (uuid 330f2f39-42c7-4488-a7cb-36b6182ddfa5))
-    (pin "5" (uuid fb7bb02d-eaef-47bb-9785-655d9c5b9669))
-    (pin "6" (uuid d1049e56-2e12-4e53-aefc-be169f5635aa))
+    (pin "1" (uuid c70843fc-d874-471d-9e0b-fd80e28fc076))
+    (pin "2" (uuid 4219ca13-3686-44a6-9e8e-51c2a84d6ce8))
+    (pin "3" (uuid 3e50f293-dc98-402a-b63b-3137360194f0))
+    (pin "4" (uuid 155dfb07-577f-4d6e-80da-17a05738b343))
+    (pin "5" (uuid 67e21d64-f07f-47f9-9ca9-d448c20fe116))
+    (pin "6" (uuid ee082bae-2a53-4dcd-9d9f-9dcb01eac44d))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3787,8 +3821,8 @@
     (property "Datasheet" "~" (at 122.555 125.73 90)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 7d1d97fb-0407-49f2-b603-c3efaa4490f7))
-    (pin "2" (uuid ee8a486c-963d-4e48-b92f-ba345ae0004c))
+    (pin "1" (uuid f93e8470-f5ee-467c-84e7-a8ee5e6bbadd))
+    (pin "2" (uuid f356b3aa-2b4c-4807-86bb-554653b6b7e2))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3813,7 +3847,7 @@
     (property "Datasheet" "" (at 120.65 130.81 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid adc26baf-42c1-47bf-bd87-f290345336e7))
+    (pin "1" (uuid c48be3b1-d7cf-448e-ab98-9386c9697d98))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3838,8 +3872,8 @@
     (property "Datasheet" "~" (at 201.93 49.53 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 958c5341-c10a-4f70-b903-9d12e7c6baf8))
-    (pin "2" (uuid 4b249e29-38ff-4c77-9586-a10837739948))
+    (pin "1" (uuid 69d85218-d5ed-4320-aa9c-f55424cd796b))
+    (pin "2" (uuid 67beb1d5-46a2-4ff4-9f66-4313a72fd1d7))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3864,7 +3898,7 @@
     (property "Datasheet" "" (at 80.01 82.55 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 9c2c0d72-3051-40f7-b218-c3843c178fcb))
+    (pin "1" (uuid ae3e3053-5a44-4dcd-a585-248f85a32f74))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3889,7 +3923,7 @@
     (property "Datasheet" "" (at 231.14 59.69 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 9cf47173-5be8-4b93-861a-2d569155092e))
+    (pin "1" (uuid ee783f79-2ea7-4319-ab04-ddfa8ead2212))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3914,8 +3948,8 @@
     (property "Datasheet" "~" (at 109.22 143.51 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid fa4581eb-9f6a-4894-9b9a-bea238d2c8a8))
-    (pin "2" (uuid f2b5531d-4692-431e-a3bf-3a7281267285))
+    (pin "1" (uuid 761615ff-9ca0-4996-a8ea-ec7873bb8729))
+    (pin "2" (uuid f849f9d2-5da7-4bb7-a839-57f09517c3c1))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3955,7 +3989,7 @@
     (property "MANUFACTURER" "Keystone" (at 185.42 34.29 0)
       (effects (font (size 1.27 1.27)) (justify bottom) hide)
     )
-    (pin "1" (uuid 41af426d-21bb-4664-8b76-274d59e38016))
+    (pin "1" (uuid 9238c252-8eae-4640-b777-21fac8173d9e))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -3980,7 +4014,7 @@
     (property "Datasheet" "" (at 209.55 107.95 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid a37935c9-a96c-4a50-91ad-95b082750196))
+    (pin "1" (uuid 2c9a23e3-6a55-49f7-8943-dfc1a13e596e))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -4005,12 +4039,62 @@
     (property "Datasheet" "~" (at 113.03 31.75 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 5bf84191-5839-46d6-af32-86200e425f9d))
-    (pin "2" (uuid 7793582c-5e9e-4fa3-9823-dc31b76a6b32))
+    (pin "1" (uuid f335c72e-86e5-487a-8996-23c9eed45caa))
+    (pin "2" (uuid 26cf1c17-bb06-47b8-8b42-b64a5704f021))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
           (reference "L1") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Mechanical:MountingHole_Pad") (at 250.19 120.65 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid f0674587-68fc-445a-8b10-fd0aefb3f7c4)
+    (property "Reference" "H2" (at 252.73 118.11 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "MountingHole_Pad" (at 252.73 120.65 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_Pad" (at 250.19 120.65 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 250.19 120.65 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 942538ec-e4e0-4bd9-9a80-1e04153c3ed6))
+    (instances
+      (project "geiger-counter"
+        (path "/7804f9af-0587-435d-9482-64f925891946"
+          (reference "H2") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "power:GND") (at 250.19 135.89 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
+    (uuid f2f5f415-654c-4db3-a03e-986f72395405)
+    (property "Reference" "#PWR031" (at 250.19 142.24 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 250.19 139.7 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 250.19 135.89 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 250.19 135.89 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid e6099cc8-ca1b-4c7d-b9da-bd9b6e86e25b))
+    (instances
+      (project "geiger-counter"
+        (path "/7804f9af-0587-435d-9482-64f925891946"
+          (reference "#PWR031") (unit 1)
         )
       )
     )
@@ -4031,7 +4115,7 @@
     (property "Datasheet" "" (at 69.85 177.8 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 8e018e32-dda3-49f8-8bbb-078f10735094))
+    (pin "1" (uuid fe9077b2-4cc5-4845-ad6b-3ddbfa31f630))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -4056,7 +4140,7 @@
     (property "Datasheet" "" (at 63.5 54.61 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid c93d1dbd-40a6-4cf4-8903-9b1505be1b40))
+    (pin "1" (uuid 83c59cc6-916c-444d-849c-462aa4bcc6c1))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
@@ -4081,7 +4165,7 @@
     (property "Datasheet" "" (at 107.95 22.86 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 187b4a48-a0c3-4366-8cbb-e4d0eb1ab48a))
+    (pin "1" (uuid 30a0ea0f-0a4b-42a0-89d8-993e43cb27fd))
     (instances
       (project "geiger-counter"
         (path "/7804f9af-0587-435d-9482-64f925891946"
