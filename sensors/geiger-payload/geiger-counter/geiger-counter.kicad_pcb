@@ -1945,7 +1945,7 @@
     (property "ki_keywords" "batt voltage-source cell")
     (path "/1a3729b8-85fd-47f5-9da2-40363927e03c")
     (attr through_hole)
-    (fp_text reference "BT1" (at 0 -7 180) (layer "F.SilkS")
+    (fp_text reference "BT1" (at 0 19.939) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp c0434de8-da37-4682-b629-e2410a16cd11)
     )
