@@ -468,6 +468,7 @@
     "net_colors": null,
     "netclass_assignments": {
       "Net-(BT1-+)": "Vcc",
+      "Net-(BT1-Pad3)": "Vcc",
       "Net-(C1-Pad1)": "HV",
       "Net-(C6-Pad1)": "HV",
       "Net-(J1-Pad1)": "HV",
