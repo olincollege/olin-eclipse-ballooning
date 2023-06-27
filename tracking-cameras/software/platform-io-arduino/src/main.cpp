@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <SolTrack.h>
-#include <RTClib.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
@@ -9,11 +8,13 @@
 #include <EEPROM.h>
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
+#include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 // #include <IMU_func.h>
 #include <SPI.h>
 
-// Stepper Motor Initialization
+SFE_UBLOX_GNSS myGNSS;
 
+// Stepper Motor Initialization
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();  // Create motor shield object
 Adafruit_StepperMotor *panMotor = AFMS.getStepper(200, 1);  // Connect stepper motor to port #1
 Adafruit_StepperMotor *tiltMotor = AFMS.getStepper(200, 2);  // Connect stepper motor to port #2
@@ -28,18 +29,23 @@ int tiltSwitchState;
 // signed long panMotorPosition;
 // signed long tiltMotorPosition;
 
+unsigned long lastGPSPrint = 0;
+
 // BNO Initialization
 unsigned long lastIMURead = 0;
 #define BNO055_SAMPLERATE_DELAY_MS (100)
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 
 // Define Functions
+void initializeGPS();
 void initializeIMU();
-void initializeRTC();
+void printGPSData();
 void homeStepperMotors();
 float compass();
 float movingAverageFilter(float angle_deg);
 
+void computeSunPos();
+void PVTUpdate(UBX_NAV_PVT_data_t *ubxDataStruct);
 void displaySensorDetails(void);
 void displaySensorStatus(void);
 void displayCalStatus(void);
@@ -47,7 +53,6 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData);
 float convertTo360(float value);
 void adjustCameraTiltAngle();
 void adjustCameraPanAngle();
-void solTrack_computeSunPos(DateTime dt, double& azimuth, double& altitude);
 
 // Rolling Average Code
 const int numReadings = 10;
@@ -60,16 +65,16 @@ float avgDeg; // Output of the moving average
 
 float thetaM; // Measured Pitch
 float phiM; // Measured Roll
-float thetaFold=0; // Old Filtered Value of Acceleromter Pitch
-float thetaFnew; // Updated Filtered Value of Acceleromter Pitch
-float phiFold=0; // Old Filtered Value of Acceleromter Pitch
-float phiFnew; // Updated Filtered Value of Acceleromter Pitch
+float thetaFold=0; // Old Filtered Value of Accelerometer Pitch
+float thetaFnew; // Updated Filtered Value of Accelerometer Pitch
+float phiFold=0; // Old Filtered Value of Accelerometer Pitch
+float phiFnew; // Updated Filtered Value of Accelerometer Pitch
 
 float thetaG=0; // Gyro Pitch
 float phiG=0; // Gyro Roll
 
-float theta; // Acceleromter Pitch
-float phi; // Acceleromter Roll
+float theta; // Accelerometer Pitch
+float phi; // Accelerometer Roll
 
 float thetaRad; // Pitch in Radians
 float phiRad; // Pitch in Radians
@@ -79,7 +84,7 @@ float Ym; // y-component of magnetometer
 float psi; // (Yaw/Heading angle) Angle of Magnetometer tilt, using the x and y components of magetometer
 int magneticDeclination;
 float adjustedValue; // Cardinal direction adjusted for magnetic declination
-float convertedValue; // Converteds and maintians the adjusted value within the 360-deg scale
+float convertedValue; // Converts and maintains the adjusted value within the 360-deg scale
 
 // Additional Variables for Sun Tracking logic
 double azimuth, altitude; // double containing the azimuth and altitude of the sun.
@@ -100,38 +105,43 @@ float currentTiltPos = INIT_TILT_POS;
 float timeDelta; // change in time
 unsigned long millisOld;
 
-// Initialise RTC
-RTC_DS3231 rtc;
-
 // Global variables and structs:
-int useDegrees = 1;             // Input (geographic position) and output are in degrees
-int useNorthEqualsZero = 1;     // Azimuth: 0 = South, pi/2 (90deg) = West  ->  0 = North, pi/2 (90deg) = East
-int computeRefrEquatorial = 0;  // Compute refraction-corrected equatorial coordinates (Hour angle, declination): 0-no, 1-yes
-int computeDistance = 0;        // Compute the distance to the Sun in AU: 0-no, 1-yes
-const float LONGITUDE = -71.2639859;  // Olin College of Engineering
-const float LATITUDE = 42.2929003;
-const float PRESSURE = 101.0;      // Atmospheric pressure in kPa
-const float TEMPERATURE = 290.3;      // Atmospheric temperature in K
+const int useDegrees = 1;             // Input (geographic position) and output are in degrees
+const int useNorthEqualsZero = 1;     // Azimuth: 0 = South, pi/2 (90deg) = West  ->  0 = North, pi/2 (90deg) = East
+const int computeRefrEquatorial = 0;  // Compute refraction-corrected equatorial coordinates (Hour angle, declination): 0-no, 1-yes
+const int computeDistance = 0;        // Compute the distance to the Sun in AU: 0-no, 1-yes
+// const float LONGITUDE = -71.2639859;  // Olin College of Engineering
+// const float LATITUDE = 42.2929003;
+const float FIXED_NOM_PRESSURE = 101.0;      // Atmospheric pressure in kPa
+const float FIXED_NOM_TEMP = 290.3;      // Atmospheric temperature in K
 
-struct STTime time;               // Struct for date and time variables
+struct STTime sttime;               // Struct for date and time variables
 struct STLocation loc;            // Struct for geographic location variables
+float hMSL;   // height above mean sea level (m)
+
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Initializing RTC");
-  initializeRTC();
-  Serial.println("RTC Intialized, Initializing IMU");
+  Wire.begin();
+  Serial.println("Initializing GPS");
+  initializeGPS();
+  Serial.println("GPS Initialized, Initializing IMU");
   initializeIMU();
-  Serial.println("IMU Initialzied, Calibrating Stepper Motors");
+  Serial.println("IMU Initialized, Calibrating Stepper Motors");
   homeStepperMotors();
   Serial.println("Stepper Motors Calibrated, Starting Loop");
+  
+  // using constant pressure and temperature since they barely affect the calculation
+  loc.pressure    = FIXED_NOM_PRESSURE;
+  loc.temperature = FIXED_NOM_TEMP;
 }
 
 void loop() {
   unsigned long now = millis();
-  if (now - lastIMURead > 100){
-    Serial.println("Calculating Sun Pos");
-    solTrack_computeSunPos(rtc.now(), azimuth, altitude);
+  myGNSS.checkUblox(); // Check for the arrival of new data and process it.
+  myGNSS.checkCallbacks(); // Check if any callbacks are waiting to be processed.
+
+  if (now - lastIMURead > 100) {
     movingAverageFilter(compass());
     Serial.print("Compass Output: ");
     Serial.println(avgDeg);
@@ -140,6 +150,9 @@ void loop() {
     Serial.println("Adjusting Tilt Angle");
     adjustCameraTiltAngle();
     lastIMURead = now;
+  }
+  if (now - lastGPSPrint > 2000) {
+    printGPSData();
   }
 }
 
@@ -240,21 +253,6 @@ void homeStepperMotors(){
   delay(500);
 }
 
-void initializeRTC(){
-  if (!rtc.begin()) {
-      Serial.println("Couldn't find RTC");
-      Serial.flush();
-      while (1) delay(10);
-  }
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power, let's set the time!");
-    // When time needs to be set on a new device, or after a power loss, the
-    // following line sets the RTC to the date & time this sketch was compiled
-    // plus 4 hours to adjust from eastern time to universal time
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))+TimeSpan(0, 4, 0, 0));
-  }
-}
-
 float movingAverageFilter(float angle_deg){
   // Moving Average Filter
   float angle_rad = angle_deg * PI / 180.0; // Convert to radians
@@ -292,6 +290,46 @@ float movingAverageFilter(float angle_deg){
   return avgDeg;
 }
 
+/*
+* Callback for when the GNSS module receives new data. Updates the time, date, latitude,
+* longitude, and height, and recalculates the sun's position.
+*/
+void PVTUpdate(UBX_NAV_PVT_data_t *ubxDataStruct) {
+  // update solTrack time struct if we have a valid date and time to use
+  if (ubxDataStruct->valid.bits.validDate && ubxDataStruct->valid.bits.validTime) {
+    sttime = (STTime){
+      ubxDataStruct->year, ubxDataStruct->month, ubxDataStruct->day,
+      ubxDataStruct->hour, ubxDataStruct->min, (double)(ubxDataStruct->sec)
+    };
+  }
+
+  // update latitude, longitude, and height if we have valid value to use
+  // TODO: add accuracy tolerance threshold using ubxDataStruct->hAcc and ubxDataStruct->vAcc
+  if (!ubxDataStruct->flags3.bits.invalidLlh) {
+    loc.latitude = ubxDataStruct->lat / 10000000.0;   // deg * 1e-7 -> deg
+    loc.longitude = ubxDataStruct->lon / 10000000.0;  // deg * 1e-7 -> deg
+    hMSL = ubxDataStruct->hMSL / 1000.0;  // mm -> m
+  }
+
+  computeSunPos();
+}
+
+void computeSunPos() {
+  struct STPosition pos;
+  SolTrack(sttime, loc, &pos, useDegrees, useNorthEqualsZero, computeRefrEquatorial, computeDistance);
+  altitude = pos.altitudeRefract;
+  azimuth = pos.azimuthRefract;
+}
+
+void printGPSData() {
+  char gpsOutputStr[96];
+  sprintf(gpsOutputStr, "Lat, Lon: %.6f, %.6f degrees\r\nhMSL: %.3f m\n%i-%02i-%02i %02i:%02i:%02.f UTC\n",
+    loc.latitude, loc.longitude, hMSL, 
+    sttime.year, sttime.month, sttime.day,
+    sttime.hour, sttime.minute, sttime.second);
+  Serial.println(gpsOutputStr);
+}
+
 /**
  * Calculates the absolute value of an integer.
  *
@@ -327,36 +365,30 @@ void adjustCameraPanAngle() {
 
   // Determine the most efficient direction of movement (clockwise or counterclockwise)
   double absAzimuthDiff = abs(azimuthDiff);
-  int direction = (azimuthDiff > 180.0) ? BACKWARD : FORWARD;
-
-  // Convert the azimuth difference to the number of steps for the stepper motor
-  int steps = static_cast<int>(absAzimuthDiff / STEP_SIZE);
-
-  // Check if the difference is negative and adjust the number of steps
-  if (azimuthDiff < 0.0 && direction == FORWARD) {
-    steps = -steps;
-  }
-
-  // Step the motor in the appropriate direction
-  Serial.println("Now moving stepper motor");
-  Serial.print("Number of steps to take: ");
-  Serial.println(steps);
-  panMotor->step(steps, direction, SINGLE);
-
-  // Update the current position
-  currentPanPos = fmod(currentPanPos + steps * STEP_SIZE, 360.0);
-  if (currentPanPos < 0.0) {
-    currentPanPos += 360.0;
-  }
-
-  // Check if the camera position is within the tolerance region
   if (absAzimuthDiff > PAN_TOLERANCE) {
-    // Camera position is outside the tolerance region, re-run the code
-    solTrack_computeSunPos(rtc.now(), azimuth, altitude);
-    adjustCameraPanAngle();  // Recursively call the function
+    int direction = (azimuthDiff > 180.0) ? BACKWARD : FORWARD;
+
+    // Convert the azimuth difference to the number of steps for the stepper motor
+    int steps = static_cast<int>(absAzimuthDiff / STEP_SIZE);
+
+    // Check if the difference is negative and adjust the number of steps
+    if (azimuthDiff < 0.0 && direction == FORWARD) {
+      steps = -steps;
+    }
+
+    // Step the motor in the appropriate direction
+    Serial.println("Now moving stepper motor");
+    Serial.print("Number of steps to take: ");
+    Serial.println(steps);
+    panMotor->step(steps, direction, SINGLE);
+
+    // Update the current position
+    currentPanPos = fmod(currentPanPos + steps * STEP_SIZE, 360.0);
+    if (currentPanPos < 0.0) {
+      currentPanPos += 360.0;
+    }
   } else {
-    // Camera position is within the tolerance region, stop the motor
-    panMotor->release();  // Release the motor to stop movement
+    // Camera position is within the tolerance region
     Serial.print("Current Position: ");
     Serial.println(currentPanPos);
   }
@@ -368,21 +400,15 @@ void adjustCameraPanAngle() {
 void adjustCameraTiltAngle() {
   // Calculate the difference between the target altitude and the current motor position
   float altitudeDiff = altitude - currentTiltMotorPosition;
-
-  // Adjust the motor position by stepping in the appropriate direction
-  if (altitudeDiff > 0) {
-    tiltMotor->step(1, FORWARD, SINGLE);
-    currentTiltMotorPosition++;
-  } else if (altitudeDiff < 0) {
-    tiltMotor->step(1, BACKWARD, SINGLE);
-    currentTiltMotorPosition--;
-  }
-
-  // Check if the camera position is within the tolerance region
-  if (absoluteValue(altitudeDiff) > TILT_TOLERANCE) {
-    // Camera position is outside the tolerance region, re-run the code
-    solTrack_computeSunPos(rtc.now(), azimuth, altitude);
-    adjustCameraTiltAngle();  // Recursively call the function
+  if (abs(altitudeDiff) > TILT_TOLERANCE) {
+    // Adjust the motor position by stepping in the appropriate direction
+    if (altitudeDiff > 0) {
+      tiltMotor->step(1, FORWARD, SINGLE);
+      currentTiltMotorPosition++;
+    } else if (altitudeDiff < 0) {
+      tiltMotor->step(1, BACKWARD, SINGLE);
+      currentTiltMotorPosition--;
+    }
   }
 }
 
@@ -400,29 +426,6 @@ float convertTo360(float value) {
   return value;
 }
 
-/**
- * Computes the position of the sun (azimuth and altitude) based on the current date and time.
- * @param dt The current date and time.
- * @param azimuth The output variable to store the computed azimuth of the sun.
- * @param altitude The output variable to store the computed altitude of the sun.
- */
-void solTrack_computeSunPos(DateTime dt, double& azimuth, double& altitude) {
-  // Set (UT!) date and time:
-  time.year   = dt.year();
-  time.month  = dt.month();
-  time.day    = dt.day();
-  time.hour   = dt.hour();
-  time.minute = dt.minute();
-  time.second = dt.second();
-
-  // Compute Sun position:
-  struct STPosition pos;
-  SolTrack(time, loc, &pos, useDegrees, useNorthEqualsZero, computeRefrEquatorial, computeDistance);
-
-  // Extract azimuth and altitude values
-  azimuth = pos.azimuthRefract;
-  altitude = pos.altitudeRefract;
-}
 
 /**************************************************************************/
 /*
@@ -467,6 +470,19 @@ void displaySensorStatus(void) {
   Serial.println(system_error, HEX);
   Serial.println("");
   delay(500);
+}
+
+void initializeGPS() {
+  if (myGNSS.begin() == false) { //Connect to the u-blox module using Wire port
+    Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing."));
+    while (1) delay(10);
+  }
+
+  myGNSS.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise)
+  // myGNSS.saveConfiguration();        // Optional: Save the current settings to flash and BBR
+    
+  myGNSS.setNavigationFrequency(2); // Produce two solutions per second
+  myGNSS.setAutoPVTcallbackPtr(&PVTUpdate); // Enable automatic NAV PVT messages with callback to PVTUpdate
 }
 
 void initializeIMU() {
