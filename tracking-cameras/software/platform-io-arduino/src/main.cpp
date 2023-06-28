@@ -331,16 +331,6 @@ void printGPSData() {
 }
 
 /**
- * Calculates the absolute value of an integer.
- *
- * @param value The integer value.
- * @return The absolute value of the input.
- */
-int absoluteValue(int value) {
-  return (value < 0) ? -value : value;
-}
-
-/**
  * Adjusts the camera pan angle.
  */
 void adjustCameraPanAngle() {
