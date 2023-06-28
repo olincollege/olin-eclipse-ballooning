@@ -1,15 +1,11 @@
 #include <Arduino.h>
 #include <SolTrack.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
+#include <Adafruit_BNO08x.h>
 #include <math.h>
-#include <EEPROM.h>
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
-// #include <IMU_func.h>
 #include <SPI.h>
 
 SFE_UBLOX_GNSS myGNSS;
@@ -33,8 +29,21 @@ unsigned long lastGPSPrint = 0;
 
 // BNO Initialization
 unsigned long lastIMURead = 0;
-#define BNO055_SAMPLERATE_DELAY_MS (100)
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
+
+#define BNO08X_RESET -1
+
+Adafruit_BNO08x bno08x(BNO08X_RESET);
+sh2_SensorValue_t sensorValue;
+
+struct euler_t {
+  float yaw;
+  float pitch;
+  float roll;
+} ypr;
+
+void setReports(void);
+void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees);
+void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees);
 
 // Define Functions
 void initializeGPS();
@@ -49,7 +58,6 @@ void PVTUpdate(UBX_NAV_PVT_data_t *ubxDataStruct);
 void displaySensorDetails(void);
 void displaySensorStatus(void);
 void displayCalStatus(void);
-void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData);
 float convertTo360(float value);
 void adjustCameraTiltAngle();
 void adjustCameraPanAngle();
@@ -62,26 +70,6 @@ int readIndex = 0;
 float avgDeg; // Output of the moving average
 
 // Variables for IMU Code
-
-float thetaM; // Measured Pitch
-float phiM; // Measured Roll
-float thetaFold=0; // Old Filtered Value of Accelerometer Pitch
-float thetaFnew; // Updated Filtered Value of Accelerometer Pitch
-float phiFold=0; // Old Filtered Value of Accelerometer Pitch
-float phiFnew; // Updated Filtered Value of Accelerometer Pitch
-
-float thetaG=0; // Gyro Pitch
-float phiG=0; // Gyro Roll
-
-float theta; // Accelerometer Pitch
-float phi; // Accelerometer Roll
-
-float thetaRad; // Pitch in Radians
-float phiRad; // Pitch in Radians
-
-float Xm; // x-component of magnetometer
-float Ym; // y-component of magnetometer
-float psi; // (Yaw/Heading angle) Angle of Magnetometer tilt, using the x and y components of magetometer
 int magneticDeclination;
 float adjustedValue; // Cardinal direction adjusted for magnetic declination
 float convertedValue; // Converts and maintains the adjusted value within the 360-deg scale
@@ -156,6 +144,34 @@ void loop() {
   }
 }
 
+void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees) {
+    quaternionToEuler(rotational_vector->real, rotational_vector->i, rotational_vector->j, rotational_vector->k, ypr, degrees);
+}
+
+void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees) {
+    float sqr = sq(qr);
+    float sqi = sq(qi);
+    float sqj = sq(qj);
+    float sqk = sq(qk);
+
+    ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+    ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
+    ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
+
+    if (degrees) {
+      ypr->yaw *= RAD_TO_DEG;
+      ypr->pitch *= RAD_TO_DEG;
+      ypr->roll *= RAD_TO_DEG;
+    }
+}
+
+void setReports(void) {
+  Serial.println("Setting desired reports");
+  if (! bno08x.enableReport(SH2_ROTATION_VECTOR)) {
+    Serial.println("Could not enable rotation vector");
+  }
+}
+
 /**
  * Computes the compass direction based on sensor readings from the IMU.
  *
@@ -163,52 +179,17 @@ void loop() {
  * @return The compass direction in degrees.
  */
 float compass() {
-  uint8_t system, gyro, accel, mg = 0;
-  sensors_event_t event;
-  bno.getEvent(&event);
-  
-  // Extracting values from the sensors on the IMU
-  imu::Vector<3> acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-  imu::Vector<3> gyr = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-  imu::Vector<3> mag = bno.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER);
-  
-  // Calculate thetaM and phiM based on accelerometer readings
-  thetaM = -atan2(acc.x() / 9.8, acc.z() / 9.8) / (2 * 3.141592654) * 360;
-  phiM = -atan2(acc.y() / 9.8, acc.z() / 9.8) / (2 * 3.141592654) * 360;
-  
-  // Update the filtered values for phi and theta
-  phiFnew = 0.95 * phiFold + 0.05 * phiM;
-  thetaFnew = 0.95 * thetaFold + 0.05 * thetaM;
-  
-  // Calculate the time difference between the current and previous readings
-  timeDelta = (millis() - millisOld) / 1000.0;
-  millisOld = millis();
-  
-  // Update the gyro-based values for phi and theta
-  theta = (theta + gyr.y() * timeDelta) * 0.95 + thetaM * 0.05; // Degrees
-  phi = (phi - gyr.x() * timeDelta) * 0.95 + phiM * 0.05; // Degrees
-  thetaG = thetaG + gyr.y() * timeDelta;
-  phiG = phiG - gyr.x() * timeDelta;
-  
-  // Convert phi and theta to radians
-  phiRad = phi / (360 * 2 * 3.141592654); // Radians
-  thetaRad = theta / 360 * (2 * 3.141592654); // Radians
-
-  // Calculate the compensated x-component of the magnetometer
-  Xm = mag.x() * cos(thetaRad) - mag.y() * sin(phiRad) * sin(thetaRad) + mag.z() * cos(phiRad) * sin(thetaRad);
-  
-  // Calculate the compensated y-component of the magnetometer
-  Ym = mag.y() * cos(phiRad) + mag.z() * sin(phiRad);
-  
-  // Calculate the angle of the magnetometer tilt (psi) in degrees
-  psi = (atan2(Ym, Xm) * 180) / 3.141592654;
-  
-  // Update the values for phi and theta
-  phiFold=phiFnew;
-  thetaFold=thetaFnew;
-
-  // Apply the magnetic declination adjustment
-  adjustedValue = psi + magneticDeclination;
+  if (bno08x.wasReset()) {
+    Serial.print("sensor was reset ");
+    setReports();
+  }
+  if (bno08x.getSensorEvent(&sensorValue)) {
+    if (sensorValue.sensorId == SH2_ROTATION_VECTOR) {
+      quaternionToEulerRV(&sensorValue.un.rotationVector, &ypr, true);
+    }
+  }
+  // Apply the magnetic declination adjustment and subtract 90 to make north 0 degrees
+  adjustedValue = ypr.yaw - 90 + magneticDeclination;
 
   // Ensure the adjusted value stays within the 360-degree range and convert the adjusted value to the 360-degree scale
   convertedValue = convertTo360(adjustedValue);
@@ -298,7 +279,7 @@ void PVTUpdate(UBX_NAV_PVT_data_t *ubxDataStruct) {
   // update solTrack time struct if we have a valid date and time to use
   if (ubxDataStruct->valid.bits.validDate && ubxDataStruct->valid.bits.validTime) {
     sttime = (STTime){
-      ubxDataStruct->year, ubxDataStruct->month, ubxDataStruct->day,
+      (int)(ubxDataStruct->year), ubxDataStruct->month, ubxDataStruct->day,
       ubxDataStruct->hour, ubxDataStruct->min, (double)(ubxDataStruct->sec)
     };
   }
@@ -416,51 +397,28 @@ float convertTo360(float value) {
   return value;
 }
 
-
-/**************************************************************************/
-/*
-    Displays some basic information on this sensor from the unified
-    sensor API sensor_t type (see Adafruit_Sensor for more information)
-    */
-/**************************************************************************/
-void displaySensorDetails(void)
-{
-    sensor_t sensor;
-    bno.getSensor(&sensor);
-    Serial.println("------------------------------------");
-    Serial.print("Sensor:       "); Serial.println(sensor.name);
-    Serial.print("Driver Ver:   "); Serial.println(sensor.version);
-    Serial.print("Unique ID:    "); Serial.println(sensor.sensor_id);
-    Serial.print("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" xxx");
-    Serial.print("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" xxx");
-    Serial.print("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" xxx");
-    Serial.println("------------------------------------");
-    Serial.println("");
-    delay(500);
-}
-
 /**************************************************************************/
 /*
     Display some basic info about the sensor status
     */
 /**************************************************************************/
-void displaySensorStatus(void) {
-  /* Get the system status values (mostly for debugging purposes) */
-  uint8_t system_status, self_test_results, system_error;
-  system_status = self_test_results = system_error = 0;
-  bno.getSystemStatus(&system_status, &self_test_results, &system_error);
+// void displaySensorStatus(void) {
+//   /* Get the system status values (mostly for debugging purposes) */
+//   uint8_t system_status, self_test_results, system_error;
+//   system_status = self_test_results = system_error = 0;
+//   bno.getSystemStatus(&system_status, &self_test_results, &system_error);
 
-  /* Display the results in the Serial Monitor */
-  Serial.println("");
-  Serial.print("System Status: 0x");
-  Serial.println(system_status, HEX);
-  Serial.print("Self Test:     0x");
-  Serial.println(self_test_results, HEX);
-  Serial.print("System Error:  0x");
-  Serial.println(system_error, HEX);
-  Serial.println("");
-  delay(500);
-}
+//   /* Display the results in the Serial Monitor */
+//   Serial.println("");
+//   Serial.print("System Status: 0x");
+//   Serial.println(system_status, HEX);
+//   Serial.print("Self Test:     0x");
+//   Serial.println(self_test_results, HEX);
+//   Serial.print("System Error:  0x");
+//   Serial.println(system_error, HEX);
+//   Serial.println("");
+//   delay(500);
+// }
 
 void initializeGPS() {
   if (myGNSS.begin() == false) { //Connect to the u-blox module using Wire port
@@ -479,13 +437,25 @@ void initializeIMU() {
   Serial.println("Orientation Sensor Test"); Serial.println("");
 
   /* Initialise the sensor */
-  if (!bno.begin())
-  {
-      /* There was a problem detecting the BNO055 ... check your connections */
-      Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-      while (1);
+  if (!bno08x.begin_I2C()) {
+    Serial.println("Failed to find BNO08x chip");
+    while (1) { delay(10); }
   }
+  Serial.println("BNO08x Found!");
 
+  for (int n = 0; n < bno08x.prodIds.numEntries; n++) {
+    Serial.print("Part ");
+    Serial.print(bno08x.prodIds.entry[n].swPartNumber);
+    Serial.print(": Version :");
+    Serial.print(bno08x.prodIds.entry[n].swVersionMajor);
+    Serial.print(".");
+    Serial.print(bno08x.prodIds.entry[n].swVersionMinor);
+    Serial.print(".");
+    Serial.print(bno08x.prodIds.entry[n].swVersionPatch);
+    Serial.print(" Build ");
+    Serial.println(bno08x.prodIds.entry[n].swBuildNumber);
+  }
+  setReports();
   //* If you want to manually insert magnetic declination, uncomment this code
   // magneticDeclination = Serial.parseInt();
   // Serial.println("Input the magnetic declination in your current location:");
@@ -495,108 +465,6 @@ void initializeIMU() {
   Serial.print("The magnetic declination is set to ");
   Serial.print(magneticDeclination);
   Serial.println(" degrees.");
-  // IMU code
-  int8_t imu_temp=bno.getTemp(); // Temperature of IMU?
-  millisOld=millis(); // Current Time
-
-  // Offset initialization
-  int eeAddress = 0;
-  long bnoID;
-  bool foundCalib = false;
-
-  EEPROM.get(eeAddress, bnoID);
-
-  adafruit_bno055_offsets_t calibrationData;
-  sensor_t sensor;
-
-  // Look for the sensor's unique ID at the beginning oF EEPROM.
-  bno.getSensor(&sensor);
-  if (bnoID != sensor.sensor_id)
-  {
-      Serial.println("\nNo Calibration Data for this sensor exists in EEPROM");
-      delay(500);
-  }
-  else
-  {
-      Serial.println("\nFound Calibration for this sensor in EEPROM.");
-      eeAddress += sizeof(long);
-      EEPROM.get(eeAddress, calibrationData);
-
-      displaySensorOffsets(calibrationData);
-
-      Serial.println("\n\nRestoring Calibration data to the BNO055...");
-      bno.setSensorOffsets(calibrationData);
-
-      Serial.println("\n\nCalibration data loaded into BNO055");
-      foundCalib = true;
-  }
-
-  delay(1000);
-
-  /* Display some basic information on this sensor */
-  displaySensorDetails();
-
-  /* Optional: Display current status */
-  displaySensorStatus();
-
-  // Crystal must be configured AFTER loading calibration data into BNO055.
-  bno.setExtCrystalUse(true);
-  sensors_event_t event;
-  bno.getEvent(&event);
-  // recalibrating magnetometer
-  if (foundCalib){
-      Serial.println("Move sensor slightly to calibrate magnetometers");
-      while (!bno.isFullyCalibrated())
-      {
-          bno.getEvent(&event);
-          delay(BNO055_SAMPLERATE_DELAY_MS);
-      }
-  }
-  else
-  {
-    Serial.println("Please Calibrate Sensor: ");
-    while (!bno.isFullyCalibrated())
-    {
-        bno.getEvent(&event);
-
-        Serial.print("X: ");
-        Serial.print(event.orientation.x, 4);
-        Serial.print("\tY: ");
-        Serial.print(event.orientation.y, 4);
-        Serial.print("\tZ: ");
-        Serial.print(event.orientation.z, 4);
-
-        /* Optional: Display calibration status */
-        displayCalStatus();
-
-        /* New line for the next sample */
-        Serial.println("");
-
-        /* Wait the specified delay before requesting new data */
-        delay(BNO055_SAMPLERATE_DELAY_MS);
-    }
-  }
-  Serial.println("\nFully calibrated!");
-  Serial.println("--------------------------------");
-  Serial.println("Calibration Results: ");
-  adafruit_bno055_offsets_t newCalib;
-  bno.getSensorOffsets(newCalib);
-  displaySensorOffsets(newCalib);
-
-  Serial.println("\n\nStoring calibration data to EEPROM...");
-
-  eeAddress = 0;
-  bno.getSensor(&sensor);
-  bnoID = sensor.sensor_id;
-
-  EEPROM.put(eeAddress, bnoID);
-
-  eeAddress += sizeof(long);
-  EEPROM.put(eeAddress, newCalib);
-  Serial.println("Data stored to EEPROM.");
-
-  Serial.println("\n--------------------------------\n");
-  delay(1000);
 }
 
 /**************************************************************************/
@@ -604,58 +472,29 @@ void initializeIMU() {
     Display sensor calibration status
     */
 /**************************************************************************/
-void displayCalStatus(void)
-{
-  /* Get the four calibration values (0..3) */
-  /* Any sensor data reporting 0 should be ignored, */
-  /* 3 means 'fully calibrated" */
-  uint8_t system, gyro, accel, mag;
-  system = gyro = accel = mag = 0;
-  bno.getCalibration(&system, &gyro, &accel, &mag);
+// void displayCalStatus(void)
+// {
+//   /* Get the four calibration values (0..3) */
+//   /* Any sensor data reporting 0 should be ignored, */
+//   /* 3 means 'fully calibrated" */
+//   uint8_t system, gyro, accel, mag;
+//   system = gyro = accel = mag = 0;
+//   bno.getCalibration(&system, &gyro, &accel, &mag);
 
-  /* The data should be ignored until the system calibration is > 0 */
-  Serial.print("\t");
-  if (!system)
-  {
-      Serial.print("! ");
-  }
+//   /* The data should be ignored until the system calibration is > 0 */
+//   Serial.print("\t");
+//   if (!system)
+//   {
+//       Serial.print("! ");
+//   }
 
-  /* Display the individual values */
-  Serial.print("Sys:");
-  Serial.print(system, DEC);
-  Serial.print(" G:");
-  Serial.print(gyro, DEC);
-  Serial.print(" A:");
-  Serial.print(accel, DEC);
-  Serial.print(" M:");
-  Serial.print(mag, DEC);
-}
-
-/**************************************************************************/
-/*
-    Display the raw calibration offset and radius data
-    */
-/**************************************************************************/
-void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
-{
-  Serial.print("Accelerometer: ");
-  Serial.print(calibData.accel_offset_x); Serial.print(" ");
-  Serial.print(calibData.accel_offset_y); Serial.print(" ");
-  Serial.print(calibData.accel_offset_z); Serial.print(" ");
-
-  Serial.print("\nGyro: ");
-  Serial.print(calibData.gyro_offset_x); Serial.print(" ");
-  Serial.print(calibData.gyro_offset_y); Serial.print(" ");
-  Serial.print(calibData.gyro_offset_z); Serial.print(" ");
-
-  Serial.print("\nMag: ");
-  Serial.print(calibData.mag_offset_x); Serial.print(" ");
-  Serial.print(calibData.mag_offset_y); Serial.print(" ");
-  Serial.print(calibData.mag_offset_z); Serial.print(" ");
-
-  Serial.print("\nAccel Radius: ");
-  Serial.print(calibData.accel_radius);
-
-  Serial.print("\nMag Radius: ");
-  Serial.print(calibData.mag_radius);
-}
+//   /* Display the individual values */
+//   Serial.print("Sys:");
+//   Serial.print(system, DEC);
+//   Serial.print(" G:");
+//   Serial.print(gyro, DEC);
+//   Serial.print(" A:");
+//   Serial.print(accel, DEC);
+//   Serial.print(" M:");
+//   Serial.print(mag, DEC);
+// }
