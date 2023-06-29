@@ -15,8 +15,8 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();  // Create motor shield obje
 Adafruit_StepperMotor *panMotor = AFMS.getStepper(200, 1);  // Connect stepper motor to port #1
 Adafruit_StepperMotor *tiltMotor = AFMS.getStepper(200, 2);  // Connect stepper motor to port #2
 
-#define panSwitchPin 13
-#define tiltSwitchPin 12
+#define panSwitchPin 7
+#define tiltSwitchPin 5
 
 bool panSwitchEnabled = false;
 bool tiltSwitchEnabled = false;
@@ -141,6 +141,7 @@ void loop() {
   }
   if (now - lastGPSPrint > 2000) {
     printGPSData();
+    lastGPSPrint = now;
   }
 }
 
@@ -174,8 +175,6 @@ void setReports(void) {
 
 /**
  * Computes the compass direction based on sensor readings from the IMU.
- *
- * @param bno The Adafruit_BNO055 object representing the IMU sensor.
  * @return The compass direction in degrees.
  */
 float compass() {
@@ -397,29 +396,6 @@ float convertTo360(float value) {
   return value;
 }
 
-/**************************************************************************/
-/*
-    Display some basic info about the sensor status
-    */
-/**************************************************************************/
-// void displaySensorStatus(void) {
-//   /* Get the system status values (mostly for debugging purposes) */
-//   uint8_t system_status, self_test_results, system_error;
-//   system_status = self_test_results = system_error = 0;
-//   bno.getSystemStatus(&system_status, &self_test_results, &system_error);
-
-//   /* Display the results in the Serial Monitor */
-//   Serial.println("");
-//   Serial.print("System Status: 0x");
-//   Serial.println(system_status, HEX);
-//   Serial.print("Self Test:     0x");
-//   Serial.println(self_test_results, HEX);
-//   Serial.print("System Error:  0x");
-//   Serial.println(system_error, HEX);
-//   Serial.println("");
-//   delay(500);
-// }
-
 void initializeGPS() {
   if (myGNSS.begin() == false) { //Connect to the u-blox module using Wire port
     Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing."));
@@ -466,35 +442,3 @@ void initializeIMU() {
   Serial.print(magneticDeclination);
   Serial.println(" degrees.");
 }
-
-/**************************************************************************/
-/*
-    Display sensor calibration status
-    */
-/**************************************************************************/
-// void displayCalStatus(void)
-// {
-//   /* Get the four calibration values (0..3) */
-//   /* Any sensor data reporting 0 should be ignored, */
-//   /* 3 means 'fully calibrated" */
-//   uint8_t system, gyro, accel, mag;
-//   system = gyro = accel = mag = 0;
-//   bno.getCalibration(&system, &gyro, &accel, &mag);
-
-//   /* The data should be ignored until the system calibration is > 0 */
-//   Serial.print("\t");
-//   if (!system)
-//   {
-//       Serial.print("! ");
-//   }
-
-//   /* Display the individual values */
-//   Serial.print("Sys:");
-//   Serial.print(system, DEC);
-//   Serial.print(" G:");
-//   Serial.print(gyro, DEC);
-//   Serial.print(" A:");
-//   Serial.print(accel, DEC);
-//   Serial.print(" M:");
-//   Serial.print(mag, DEC);
-// }
