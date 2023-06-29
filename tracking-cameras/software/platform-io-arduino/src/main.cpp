@@ -303,8 +303,15 @@ void computeSunPos() {
 
 void printGPSData() {
   char gpsOutputStr[96];
-  sprintf(gpsOutputStr, "Lat, Lon: %.6f, %.6f degrees\r\nhMSL: %.3f m\n%i-%02i-%02i %02i:%02i:%02.f UTC\n",
-    loc.latitude, loc.longitude, hMSL, 
+
+  // convert floats to str separately from sprintf b/c arduino doesn't support float in sprintf
+  char latstr[12], longstr[12], hMSLstr[11];
+  dtostrf(loc.latitude, 10, 6, latstr);
+  dtostrf(loc.longitude, 11, 6, longstr);
+  dtostrf(loc.longitude, 10, 6, hMSLstr);
+
+  sprintf(gpsOutputStr, "Lat, Lon: %s, %s degrees\r\nhMSL: %s m\n%i-%02i-%02i %02i:%02i:%02i UTC\n",
+    latstr, longstr, hMSLstr,
     sttime.year, sttime.month, sttime.day,
     sttime.hour, sttime.minute, sttime.second);
   Serial.println(gpsOutputStr);
