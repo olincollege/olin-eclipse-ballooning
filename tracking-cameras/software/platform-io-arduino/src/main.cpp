@@ -331,32 +331,30 @@ void adjustCameraPanAngle() {
   Serial.println(avgDeg);
   Serial.print("Azimuth of the Sun: ");
   Serial.println(azimuth);
+
+  // Normalize the azimuth difference to the shortest distance within the range of -180 to 180 degrees
+  if (azimuthDiff < -180.0) {
+    azimuthDiff += 360.0;
+  } else if (azimuthDiff > 180.0) {
+    azimuthDiff -= 360.0;
+  }
+
   Serial.print("Azimuth Difference: ");
   Serial.println(azimuthDiff);
-
-  // Normalize the azimuth difference to ensure it wraps around within the range of 0 to 360 degrees
-  azimuthDiff = fmod(azimuthDiff, 360.0);
-  if (azimuthDiff < 0.0) {
-    azimuthDiff += 360.0;
-  }
 
   // Determine the most efficient direction of movement (clockwise or counterclockwise)
   double absAzimuthDiff = abs(azimuthDiff);
   if (absAzimuthDiff > PAN_TOLERANCE) {
-    int direction = (azimuthDiff > 180.0) ? BACKWARD : FORWARD;
+    int direction = (azimuthDiff < 0.0) ? BACKWARD : FORWARD;
 
     // Convert the azimuth difference to the number of steps for the stepper motor
     int steps = static_cast<int>(absAzimuthDiff / STEP_SIZE);
-
-    // Check if the difference is negative and adjust the number of steps
-    if (azimuthDiff < 0.0 && direction == FORWARD) {
-      steps = -steps;
-    }
 
     // Step the motor in the appropriate direction
     Serial.println("Now moving stepper motor");
     Serial.print("Number of steps to take: ");
     Serial.println(steps);
+
     panMotor->step(steps, direction, SINGLE);
 
     // Update the current position
@@ -366,7 +364,7 @@ void adjustCameraPanAngle() {
     }
   } else {
     // Camera position is within the tolerance region
-    Serial.print("Current Position: ");
+    Serial.print("Stepper motor is in tolerance. Current position: ");
     Serial.println(currentPanPos);
   }
 }
