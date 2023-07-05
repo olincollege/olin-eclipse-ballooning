@@ -12,7 +12,7 @@ To install the required libraries, navigate to this directory and run `python3 -
 
 ### Environment variables
 
-For security purposes, this repository doesn't contain the IMEI number for the Iridium modem. This must be added to a text file called `.env` in this directory. You must also add the email address that is being sent from to the `.env` file. It should look something like the following:
+For security purposes, this repository doesn't contain the IMEI number for the Iridium modem. This must be added to a file called `.env` in this directory. You must also add the email address that is being sent from to the `.env` file. It should look something like the following:
 ```
 FROM=mynebpteam@gmail.com
 IMEI=123456789123456
