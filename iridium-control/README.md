@@ -8,7 +8,7 @@ Make sure you're using Python 3 - this has only been tested on Python 3.11 runni
 
 ### Dependencies
 
-To install the required libraries, navigate to this directory and run `python3 -m pip install -r requirements.txt`. I recommend doing this in a venv, but it doesn't really matter.
+To install the required libraries, navigate to this directory and run `python3 -m pip install -r requirements.txt` on Linux, or `py -m pip install -r requirements.txt` on Windows. I recommend doing this in a venv, but it doesn't really matter.
 
 ### Environment variables
 
