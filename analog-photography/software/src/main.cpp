@@ -1,127 +1,113 @@
+#include "Debounce.h"
 #include <Arduino.h>
 #include <Servo.h>
 
+#define DEBUG true
+#define DEBUG_SERIAL if (DEBUG) Serial
+
 // HW pin definitions
 #define WINDING_LIM_PIN 2
-#define SHUTTER_BTN 3
+#define TRIGGER_BTN_PIN 7
 #define FILM_PIN 5
-#define SHUTTER_PIN 6
+#define SHUTTER_PIN 8
 
 // declare servos
-Servo windServo;    // continuous rotation servo
+Servo windServo;    // continuous rotation (90 is stopped)
 Servo shutterServo;
 
-int shutterPos = 0;     // shutter servo position
+const int windServoStop = 90;   // "zero" position for servo to stop moving
+const int windServoSpeed = 20;  // added to stop position for moving servo
+const int shutterServoHome = 20;
+const int shutterServoIncrement = 10;
 
-int shutterButtonState = LOW;
-int lastShutterButtonState = LOW;
+int shutterPos;     // current shutter servo position
 
-unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50;
+Debounce triggerButton = Debounce(TRIGGER_BTN_PIN);
+Debounce windLimSwitch = Debounce(WINDING_LIM_PIN);
 
 unsigned long windDelay = 1000;
 unsigned long lastShutterTime = 0;
 
-enum windStates {
-    UNWOUND, // switch open
-    WOUND,    // switch closed
-    WINDING         // switch open, winding servo moving
+enum cameraStates {
+    UNWOUND,    // idle; limit open
+    WINDING,    // wind servo active
+    WOUND,      // servos stopped
+    PRESSING,   // shutter servo active
+    UNPRESSING  // shutter servo homing
 };
 
-enum shutterStates {
-    UNPRESSED,
-    PRESSING,   // transition from unpressed -> pressed
-    PRESSED,
-    UNPRESSING  // transition from pressed -> unpressed
-};
-
-enum windStates winderState;
-enum shutterStates shutterState = UNPRESSED;
+enum cameraStates cameraState;
 
 void setup() {
+    DEBUG_SERIAL.begin(9600);
     pinMode(WINDING_LIM_PIN, INPUT_PULLUP);
-    pinMode(SHUTTER_BTN, INPUT_PULLUP);
+    pinMode(TRIGGER_BTN_PIN, INPUT_PULLUP);
     windServo.attach(FILM_PIN);
     shutterServo.attach(SHUTTER_PIN);
 
     // initialize winding limit switch
-    (!digitalRead(WINDING_LIM_PIN)) ? winderState = WOUND : winderState = UNWOUND;
-    windServo.write(90);
-    shutterServo.write(0);
+    (!digitalRead(WINDING_LIM_PIN)) ? cameraState = WOUND : cameraState = UNWOUND;
+    windServo.write(windServoStop);
+    shutterServo.write(shutterServoHome);
+    shutterPos = shutterServoHome;
 }
 
 void loop() {
-    // reverse the readings to correct for pullup resistor
-    int windingLimitClosed = !digitalRead(WINDING_LIM_PIN);
-    int shutterButtonReading = !digitalRead(SHUTTER_BTN);
+    triggerButton.poll();
+    windLimSwitch.poll();
 
-    // debounce routine
-    if (shutterButtonReading != lastShutterButtonState) {
-        lastDebounceTime = millis();
-    }
+    // FSM for winding film and taking pictures
+    switch (cameraState) {
+    case UNWOUND:   // reset shutter servo and wait some amount of time
+        // ACTION: reset shutter servo (move to home/idle position)
+        shutterPos = shutterServoHome;
+        shutterServo.write(shutterPos);
 
-    // enough time has passed since state change to not be a bounce input
-    if ((millis() - lastDebounceTime) > debounceDelay) {
-        if (shutterButtonReading != shutterButtonState) {
-            shutterButtonState = shutterButtonReading;
-        }
-    }
-    lastShutterButtonState = shutterButtonReading;
-
-    // FSMs for film winding and triggering shutter
-    switch (winderState) {
-    case UNWOUND:   // shutter switch open, servo stopped
-        // change to wound if shutter switch is closed
-        if (windingLimitClosed) {
-            windServo.write(90);
-            winderState = WOUND;
-        // otherwise check if enough time has passed and start winding if so
-        } else if ((millis() - lastShutterTime) > windDelay) {
-            winderState = WINDING;
-            windServo.write(70);
+        // STATE CHANGE: if enough time passed → WINDING
+        if ((millis() - lastShutterTime) > windDelay) {
+            cameraState = WINDING;
+            DEBUG_SERIAL.println("UNWOUND -> WINDING");
         }
         break;
-    case WINDING:   // shutter switch open, servo turning
-        // change to wound if shutter switch is closed
-        if (windingLimitClosed) {
-            windServo.write(90);    // stop winding
-            winderState = WOUND;
+    case WINDING:   // wind film until it's wound (switch closes)
+        // ACTION: turn wind servo, poll limit switch
+        windServo.write(windServoStop + windServoSpeed);
+
+        // STATE CHANGE: if wind switch is closed → WOUND
+        if (windLimSwitch.getState()) {
+            cameraState = WOUND;
+            DEBUG_SERIAL.println("WINDING -> WOUND");
         }
         break;
-    case WOUND:     // shutter switch closed, servo stopped
-        windServo.write(90); // stop winding
-        if (!windingLimitClosed) {  // change states to unwound if the switch opens (shutter was triggered)
-            lastShutterTime = millis();
-            winderState = UNWOUND;
+    case WOUND:     // done winding, stop the servo and wait to take picture
+        // ACTION: stop wind servo
+        windServo.write(windServoStop);
+
+        // STATE CHANGE: if trigger button pressed → PRESSING
+        if (triggerButton.getState()) {
+            cameraState = PRESSING;
+            DEBUG_SERIAL.println("WOUND -> PRESSING");
+        }
+        break;
+    case PRESSING:  // take a picture
+        // STATE CHANGE: wind switch open → UNWOUND
+        if (!windLimSwitch.getState()) {
+            cameraState = UNWOUND;
+            lastShutterTime = millis(); // reset timer
+            DEBUG_SERIAL.println("PRESSING -> UNWOUND");
+        } else { // only move servo anymore if not changing state
+        // ACTION: incrementally move shutter servo
+            shutterPos += shutterServoIncrement;
+            // constrain servo angle to 0-180°
+            if (shutterPos >= 180) {
+                shutterPos = 180;
+            } else if (shutterPos < 0) {
+                shutterPos = 0;
+            }
+            shutterServo.write(shutterPos);
         }
         break;
     default:
-        windServo.write(90);
-        break;
-    }
-
-    switch (shutterState) {
-    case UNPRESSED:
-        // if trigger button is pressed and the film is wound, press the shutter
-        if (shutterButtonState && winderState == WOUND) {
-            shutterServo.write(45);
-            shutterState = PRESSING;
-        }
-        break;
-    case PRESSING:
-        // wait until the shutter is pressed (film is no longer wound)
-        // and then move to unpressing state
-        if (winderState == UNWOUND) {
-            shutterState = UNPRESSING;
-        }
-        break;
-    case UNPRESSING:
-        // move servo to zero position and go to unpressed state
-        shutterServo.write(0);
-        shutterState = UNPRESSED;
-        break;
-    default:
-        shutterServo.write(0);
         break;
     }
 }
