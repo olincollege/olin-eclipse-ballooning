@@ -3,27 +3,35 @@
 #include <Wire.h>
 #include <Adafruit_BNO08x.h>
 #include <math.h>
-#include <Adafruit_MotorShield.h>
-#include "utility/Adafruit_MS_PWMServoDriver.h"
+#include <AccelStepper.h>
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 #include <SPI.h>
 
 SFE_UBLOX_GNSS myGNSS;
 
 // Stepper Motor Initialization
-Adafruit_MotorShield AFMS = Adafruit_MotorShield();  // Create motor shield object
-Adafruit_StepperMotor *panMotor = AFMS.getStepper(200, 1);  // Connect stepper motor to port #1
-Adafruit_StepperMotor *tiltMotor = AFMS.getStepper(200, 2);  // Connect stepper motor to port #2
+// Adafruit_MotorShield AFMS = Adafruit_MotorShield();  // Create motor shield object
+// Adafruit_StepperMotor *panMotor = AFMS.getStepper(200, 1);  // Connect stepper motor to port #1
+// Adafruit_StepperMotor *tiltMotor = AFMS.getStepper(200, 2);  // Connect stepper motor to port #2
 
-#define panSwitchPin 7
-#define tiltSwitchPin 5
+// Define pin connections
+#define panSwitchPin 22
+#define tiltSwitchPin 23
+const int panMotorDIR = 7;
+const int panMotorSTEP = 6;
+const int tiltMotorDIR = 32;
+const int tiltMotorSTEP = 31;
+
+// Define motor interface type
+#define motorInterfaceType 1
+
+AccelStepper panMotor(motorInterfaceType, panMotorSTEP, panMotorDIR);
+AccelStepper tiltMotor(motorInterfaceType, tiltMotorSTEP, tiltMotorDIR);
 
 bool panSwitchEnabled = false;
 bool tiltSwitchEnabled = false;
 int panSwitchState;
 int tiltSwitchState;
-// signed long panMotorPosition;
-// signed long tiltMotorPosition;
 
 unsigned long lastGPSPrint = 0;
 
@@ -83,7 +91,7 @@ const float TILT_TOLERANCE = 5.0;  // Tolerance for camera tilt angle (in degree
 const float RECALIBRATION_TOLERANCE = 4.0;  // Tolerance for re-running the code (in degrees)
 const int INIT_PAN_POS = 0;
 const int INIT_TILT_POS = 90;
-const float GEAR_RATIO = 1.0 / 3.0;
+const float GEAR_RATIO = 1.0 / 4.0;
 const float STEPPER_STEP_SIZE = 1.8;
 const float STEP_SIZE = GEAR_RATIO * STEPPER_STEP_SIZE;
 
@@ -98,8 +106,6 @@ const int useDegrees = 1;             // Input (geographic position) and output 
 const int useNorthEqualsZero = 1;     // Azimuth: 0 = South, pi/2 (90deg) = West  ->  0 = North, pi/2 (90deg) = East
 const int computeRefrEquatorial = 0;  // Compute refraction-corrected equatorial coordinates (Hour angle, declination): 0-no, 1-yes
 const int computeDistance = 0;        // Compute the distance to the Sun in AU: 0-no, 1-yes
-// const float LONGITUDE = -71.2639859;  // Olin College of Engineering
-// const float LATITUDE = 42.2929003;
 const float FIXED_NOM_PRESSURE = 101.0;      // Atmospheric pressure in kPa
 const float FIXED_NOM_TEMP = 290.3;      // Atmospheric temperature in K
 
@@ -200,8 +206,19 @@ void homeStepperMotors(){
   pinMode(panSwitchPin, INPUT_PULLUP);
   pinMode(tiltSwitchPin, INPUT_PULLUP);
   while (!Serial);
-  AFMS.begin();  // Initialize motor shield
-
+  panMotor.setMaxSpeed(1000);
+  panMotor.setAcceleration(50);
+  panMotor.setSpeed(200);
+  // panMotor.moveTo(200);
+  tiltMotor.setMaxSpeed(1000);
+  tiltMotor.setAcceleration(50);
+  tiltMotor.setSpeed(200);
+  // tiltMotor.moveTo(200);
+  // while (panMotor.distanceToGo() != 0){
+    // Serial.println("Stepper Motors running.");
+    // panMotor.runSpeed();
+    // tiltMotor.runSpeed();
+  // }
   while (!panSwitchEnabled || !tiltSwitchEnabled) {
     panSwitchState = digitalRead(panSwitchPin);
     tiltSwitchState = digitalRead(tiltSwitchPin);
@@ -209,25 +226,27 @@ void homeStepperMotors(){
     if (panSwitchState == HIGH) {  // Check if the pan switch is enabled
       if (!panSwitchEnabled) {
         Serial.println("Pan Switch Engaged!");
-        panMotor->release();  // Release pan motor if switch is enabled
+        panMotor.stop();
+        // panMotor->release();  // Release pan motor if switch is enabled
         panSwitchEnabled = true;
         stepperPanAngle = 0.0;
       }
     } else {
       panSwitchEnabled = false;
-      panMotor->step(1, FORWARD, SINGLE);  // Step pan motor forward
+      panMotor.runSpeed();  // Step pan motor forward
     }
 
     if (tiltSwitchState == HIGH) {  // Check if the tilt switch is enabled
       if (!tiltSwitchEnabled) {
         Serial.println("Tilt Switch Engaged!");
-        tiltMotor->release();  // Release tilt motor if switch is enabled
+        tiltMotor.stop();
+        // tiltMotor->release();  // Release tilt motor if switch is enabled
         tiltSwitchEnabled = true;
         currentTiltMotorPosition = 0.0;
       }
     } else {
       tiltSwitchEnabled = false;
-      tiltMotor->step(1, FORWARD, SINGLE);  // Step tilt motor forward
+      tiltMotor.runSpeed();  // Step pan motor forward
     }
   }
   delay(500);
@@ -322,16 +341,9 @@ void printGPSData() {
  */
 void adjustCameraPanAngle() {
   // Calculate the difference between the target azimuth and the current motor position
-  Serial.println("");
-  Serial.println("Math to find the difference");
-  double azimuthDiff = azimuth - avgDeg - currentPanPos;
-  Serial.print("Step Size: ");
-  Serial.println(STEP_SIZE);
-  Serial.print("Compass Average Output: ");
-  Serial.println(avgDeg);
-  Serial.print("Azimuth of the Sun: ");
-  Serial.println(azimuth);
-
+  double azimuthDiff = azimuth - ypr.yaw - currentPanPos;
+  Serial.print("Difference from the Azimuth of the Sun: ");
+  Serial.println(azimuthDiff);
   // Normalize the azimuth difference to the shortest distance within the range of -180 to 180 degrees
   if (azimuthDiff < -180.0) {
     azimuthDiff += 360.0;
@@ -339,26 +351,26 @@ void adjustCameraPanAngle() {
     azimuthDiff -= 360.0;
   }
 
-  Serial.print("Azimuth Difference: ");
-  Serial.println(azimuthDiff);
-
   // Determine the most efficient direction of movement (clockwise or counterclockwise)
   double absAzimuthDiff = abs(azimuthDiff);
   if (absAzimuthDiff > PAN_TOLERANCE) {
-    int direction = (azimuthDiff < 0.0) ? BACKWARD : FORWARD;
+    // int direction = (azimuthDiff < 0.0) ? -1 : 1;
 
     // Convert the azimuth difference to the number of steps for the stepper motor
     int steps = static_cast<int>(absAzimuthDiff / STEP_SIZE);
 
-    // Step the motor in the appropriate direction
-    Serial.println("Now moving stepper motor");
-    Serial.print("Number of steps to take: ");
+    if (azimuthDiff < 0.0) {
+      steps = -steps;
+    }
+    Serial.print("Steps to take: ");
     Serial.println(steps);
-
-    panMotor->step(steps, direction, SINGLE);
+    // Step the motor in the appropriate direction
+    panMotor.moveTo(steps);
+    panMotor.run();
 
     // Update the current position
-    currentPanPos = fmod(currentPanPos + steps * STEP_SIZE, 360.0);
+    currentPanPos += azimuthDiff;
+    currentPanPos = fmod(currentPanPos, 360.0);
     if (currentPanPos < 0.0) {
       currentPanPos += 360.0;
     }
@@ -369,21 +381,23 @@ void adjustCameraPanAngle() {
   }
 }
 
-/**
- * Adjusts the camera tilt angle.
- */
 void adjustCameraTiltAngle() {
   // Calculate the difference between the target altitude and the current motor position
-  float altitudeDiff = altitude - currentTiltMotorPosition;
-  if (abs(altitudeDiff) > TILT_TOLERANCE) {
-    // Adjust the motor position by stepping in the appropriate direction
-    if (altitudeDiff > 0) {
-      tiltMotor->step(1, FORWARD, SINGLE);
-      currentTiltMotorPosition++;
-    } else if (altitudeDiff < 0) {
-      tiltMotor->step(1, BACKWARD, SINGLE);
-      currentTiltMotorPosition--;
-    }
+  float tiltDiff = altitude - ypr.pitch - currentTiltPos;
+
+  // Determine the most efficient direction of movement (up or down)
+  if (abs(tiltDiff) > TILT_TOLERANCE) {
+    int direction = (tiltDiff > 0.0) ? 1 : -1;
+
+    // Convert the tilt difference to the number of steps for the stepper motor
+    int steps = static_cast<int>(abs(tiltDiff) / STEP_SIZE);
+
+    // Step the motor in the appropriate direction
+    tiltMotor.moveTo(direction*steps);
+    tiltMotor.run();
+
+    // Update the current position
+    currentTiltPos += tiltDiff;
   }
 }
 
