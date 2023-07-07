@@ -11,16 +11,18 @@
 #define FILM_PIN 5
 #define SHUTTER_PIN 8
 
+#define WIND_DELAY_MS 1000          // time in ms to wait before winding film
+
 // declare servos
 Servo windServo;    // continuous rotation (90 is stopped)
 Servo shutterServo;
 
 const int windServoStop = 90;   // "zero" position for servo to stop moving
 const int windServoSpeed = 20;  // added to stop position for moving servo
-const int shutterServoHome = 20;
+const int shutterServoHome = 90;
 const int shutterServoIncrement = 10;
 
-int shutterPos;     // current shutter servo position
+int shutterPos; // current shutter servo position
 
 Debounce triggerButton = Debounce(TRIGGER_BTN_PIN);
 Debounce windLimSwitch = Debounce(WINDING_LIM_PIN);
@@ -62,7 +64,6 @@ void loop() {
         // ACTION: reset shutter servo (move to home/idle position)
         shutterPos = shutterServoHome;
         shutterServo.write(shutterPos);
-
         // STATE CHANGE: if enough time passed → WINDING
         if ((millis() - lastShutterTime) > windDelay) {
             cameraState = WINDING;
@@ -90,21 +91,20 @@ void loop() {
         }
         break;
     case PRESSING:  // take a picture
+        // ACTION: incrementally move shutter servo
+        shutterPos += shutterServoIncrement;
+        if (shutterPos >= 180) {    // constrain servo angle to 0-180°
+            shutterPos = 180;
+        } else if (shutterPos < 0) {
+            shutterPos = 0;
+        }
+        shutterServo.write(shutterPos);
+        
         // STATE CHANGE: wind switch open → UNWOUND
         if (!windLimSwitch.getState()) {
             cameraState = UNWOUND;
             lastShutterTime = millis(); // reset timer
             DEBUG_SERIAL.println("PRESSING -> UNWOUND");
-        } else { // only move servo anymore if not changing state
-        // ACTION: incrementally move shutter servo
-            shutterPos += shutterServoIncrement;
-            // constrain servo angle to 0-180°
-            if (shutterPos >= 180) {
-                shutterPos = 180;
-            } else if (shutterPos < 0) {
-                shutterPos = 0;
-            }
-            shutterServo.write(shutterPos);
         }
         break;
     default:
