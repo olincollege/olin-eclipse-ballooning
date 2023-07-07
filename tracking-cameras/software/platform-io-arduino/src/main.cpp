@@ -71,7 +71,7 @@ void adjustCameraTiltAngle();
 void adjustCameraPanAngle();
 
 // Rolling Average Code
-const int numReadings = 10;
+const int numReadings = 100;
 float x_readings[numReadings] = {0}; // Array to store the x-coordinates of the readings
 float y_readings[numReadings] = {0}; // Array to store the y-coordinates of the readings
 int readIndex = 0;
@@ -96,7 +96,7 @@ const float STEPPER_STEP_SIZE = 1.8;
 const float STEP_SIZE = GEAR_RATIO * STEPPER_STEP_SIZE;
 
 double currentPanPos = INIT_PAN_POS;
-float currentTiltPos = INIT_TILT_POS;
+double currentTiltPos = INIT_TILT_POS;
 
 float timeDelta; // change in time
 unsigned long millisOld;
@@ -137,11 +137,11 @@ void loop() {
 
   if (now - lastIMURead > 100) {
     movingAverageFilter(compass());
-    Serial.print("Compass Output: ");
-    Serial.println(avgDeg);
-    Serial.println("Adjusting Pan Angle");
+    // Serial.print("Compass Output: ");
+    // Serial.println(avgDeg);
+    // Serial.println("Adjusting Pan Angle");
     adjustCameraPanAngle();
-    Serial.println("Adjusting Tilt Angle");
+    // Serial.println("Adjusting Tilt Angle");
     adjustCameraTiltAngle();
     lastIMURead = now;
   }
@@ -229,7 +229,9 @@ void homeStepperMotors(){
         panMotor.stop();
         // panMotor->release();  // Release pan motor if switch is enabled
         panSwitchEnabled = true;
-        stepperPanAngle = 0.0;
+        currentPanPos = INIT_PAN_POS;
+        // panMotor.setCurrentPosition(panMotor.currentPosition());
+        // currentPanPos = panMotor.currentPosition();
       }
     } else {
       panSwitchEnabled = false;
@@ -242,7 +244,9 @@ void homeStepperMotors(){
         tiltMotor.stop();
         // tiltMotor->release();  // Release tilt motor if switch is enabled
         tiltSwitchEnabled = true;
-        currentTiltMotorPosition = 0.0;
+        currentTiltPos = INIT_TILT_POS;
+        // tiltMotor.setCurrentPosition(tiltMotor.currentPosition()+90);
+        // currentTiltPos = panMotor.currentPosition();
       }
     } else {
       tiltSwitchEnabled = false;
@@ -341,9 +345,18 @@ void printGPSData() {
  */
 void adjustCameraPanAngle() {
   // Calculate the difference between the target azimuth and the current motor position
-  double azimuthDiff = azimuth - ypr.yaw - currentPanPos;
+  Serial.println("");
+  Serial.println("-- Error Detection Loop --");
+  double azimuthDiff = azimuth - avgDeg - currentPanPos;
+  Serial.print("Compass Average Output: ");
+  Serial.println(avgDeg);
+  Serial.print("Azimuth of the Sun: ");
+  Serial.println(azimuth);
   Serial.print("Difference from the Azimuth of the Sun: ");
   Serial.println(azimuthDiff);
+  Serial.print("Current Pan Position: ");
+  Serial.println(currentPanPos);
+
   // Normalize the azimuth difference to the shortest distance within the range of -180 to 180 degrees
   if (azimuthDiff < -180.0) {
     azimuthDiff += 360.0;
@@ -354,8 +367,6 @@ void adjustCameraPanAngle() {
   // Determine the most efficient direction of movement (clockwise or counterclockwise)
   double absAzimuthDiff = abs(azimuthDiff);
   if (absAzimuthDiff > PAN_TOLERANCE) {
-    // int direction = (azimuthDiff < 0.0) ? -1 : 1;
-
     // Convert the azimuth difference to the number of steps for the stepper motor
     int steps = static_cast<int>(absAzimuthDiff / STEP_SIZE);
 
@@ -365,8 +376,7 @@ void adjustCameraPanAngle() {
     Serial.print("Steps to take: ");
     Serial.println(steps);
     // Step the motor in the appropriate direction
-    panMotor.moveTo(steps);
-    panMotor.run();
+    panMotor.runToNewPosition(steps);
 
     // Update the current position
     currentPanPos += azimuthDiff;
@@ -384,17 +394,17 @@ void adjustCameraPanAngle() {
 void adjustCameraTiltAngle() {
   // Calculate the difference between the target altitude and the current motor position
   float tiltDiff = altitude - ypr.pitch - currentTiltPos;
-
+  // float tiltDiff = altitude - ypr.pitch - tiltMotor.currentPosition();
   // Determine the most efficient direction of movement (up or down)
   if (abs(tiltDiff) > TILT_TOLERANCE) {
-    int direction = (tiltDiff > 0.0) ? 1 : -1;
-
     // Convert the tilt difference to the number of steps for the stepper motor
     int steps = static_cast<int>(abs(tiltDiff) / STEP_SIZE);
+    if (tiltDiff < 0.0) {
+      steps = -steps;
+    }
 
     // Step the motor in the appropriate direction
-    tiltMotor.moveTo(direction*steps);
-    tiltMotor.run();
+    tiltMotor.runToNewPosition(steps);
 
     // Update the current position
     currentTiltPos += tiltDiff;
