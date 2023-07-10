@@ -93,10 +93,10 @@ void loop() {
     case PRESSING:  // take a picture
         // ACTION: incrementally move shutter servo
         shutterPos += shutterServoIncrement;
-        if (shutterPos >= 180) {    // constrain servo angle to 0-180°
-            shutterPos = 180;
-        } else if (shutterPos < 0) {
-            shutterPos = 0;
+        if (shutterPos >= 170) {    // constrain servo angle to 10-170°
+            shutterPos = 170;
+        } else if (shutterPos < 10) {
+            shutterPos = 10;
         }
         shutterServo.write(shutterPos);
         
