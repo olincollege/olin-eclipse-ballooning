@@ -1,11 +1,26 @@
 #include "DispoCam.h"
 
+DispoCam::DispoCam() {}
+
 DispoCam::DispoCam(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch) :
     windServo(windServo), shutterServo(shutterServo), limitSwitch(limitSwitch),
     state(!digitalRead(limitSwitch->getPin()) ? WOUND : UNWOUND)
 {
     windServo->write(windServoStop);
     shutterServo->write(shutterServoHome);
+}
+
+CAM_STATES DispoCam::getState() {
+    return state;
+}
+
+void DispoCam::attach(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch) {
+    this->windServo = windServo;
+    this->shutterServo = shutterServo;
+    this->limitSwitch = limitSwitch;
+    windServo->write(windServoStop);
+    shutterServo->write(shutterServoHome);
+    this->state = !digitalRead(limitSwitch->getPin()) ? WOUND : UNWOUND;
 }
 
 void DispoCam::readyNext() {

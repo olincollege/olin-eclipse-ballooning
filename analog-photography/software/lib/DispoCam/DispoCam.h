@@ -20,17 +20,20 @@ enum CAM_STATES {
 
 class DispoCam {
     private:
+        Servo *windServo;
+        Servo *shutterServo;
+        Debounce *limitSwitch;
         enum CAM_STATES state;
         int limitPin;
         int shutterPos = shutterServoHome;
         unsigned long lastShutterTime = 0;
-        Debounce *limitSwitch;
         bool nextStateReady = false;
-        Servo *windServo;
-        Servo *shutterServo;
+        
 
     public:
+        DispoCam();
         DispoCam(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch);
+        void attach(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch);
         void update();  // poll switches, update FSM
         bool servoActive(); // true if in a state where a servo is moving
         CAM_STATES getState();
