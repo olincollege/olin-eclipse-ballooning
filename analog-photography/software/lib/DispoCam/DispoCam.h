@@ -28,6 +28,7 @@ class DispoCam {
         int shutterPos = shutterServoHome;
         unsigned long lastShutterTime = 0;
         bool nextStateReady = false;
+        uint8_t cameraIndex; 
         
 
     public:

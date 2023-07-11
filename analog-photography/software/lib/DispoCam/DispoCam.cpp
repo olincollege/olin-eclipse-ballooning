@@ -1,6 +1,14 @@
 #include "DispoCam.h"
 
-DispoCam::DispoCam() {}
+#define DEBUG false
+#define DEBUG_SERIAL if (DEBUG) Serial
+
+uint8_t cameraCount = 0;
+
+DispoCam::DispoCam() {
+    cameraCount++;
+    cameraIndex = cameraCount - 1;
+}
 
 DispoCam::DispoCam(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch) :
     windServo(windServo), shutterServo(shutterServo), limitSwitch(limitSwitch),
@@ -8,6 +16,8 @@ DispoCam::DispoCam(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch)
 {
     windServo->write(windServoStop);
     shutterServo->write(shutterServoHome);
+    cameraCount++;
+    cameraIndex = cameraCount - 1;
 }
 
 CAM_STATES DispoCam::getState() {
@@ -44,7 +54,9 @@ void DispoCam::update() {
         if ((millis() - lastShutterTime) > windDelay_ms && nextStateReady) {
             state = WINDING;
             nextStateReady = false;
-            // DEBUG_SERIAL.println("UNWOUND -> WINDING");
+            DEBUG_SERIAL.print("Camera ");
+            DEBUG_SERIAL.print(cameraIndex);
+            DEBUG_SERIAL.println(": UNWOUND -> WINDING");
         }
         break;
     case WINDING:   // wind film until it's wound (switch closes)
@@ -55,7 +67,9 @@ void DispoCam::update() {
         if (limitSwitch->getState()) {
             state = WOUND;
             nextStateReady = false;
-            // DEBUG_SERIAL.println("WINDING -> WOUND");
+            DEBUG_SERIAL.print("Camera ");
+            DEBUG_SERIAL.print(cameraIndex);
+            DEBUG_SERIAL.println(": WINDING -> WOUND");
         }
         break;
     case WOUND:     // done winding, stop the servo and wait to take picture
@@ -66,7 +80,9 @@ void DispoCam::update() {
         if (nextStateReady) {
             state = PRESSING;
             nextStateReady = false;
-            // DEBUG_SERIAL.println("WOUND -> PRESSING");
+            DEBUG_SERIAL.print("Camera ");
+            DEBUG_SERIAL.print(cameraIndex);
+            DEBUG_SERIAL.println(": WOUND -> PRESSING");
         }
         break;
     case PRESSING:  // take a picture
@@ -84,7 +100,9 @@ void DispoCam::update() {
             state = UNWOUND;
             lastShutterTime = millis(); // reset timer
             nextStateReady = false;
-            // DEBUG_SERIAL.println("PRESSING -> UNWOUND");
+            DEBUG_SERIAL.print("Camera ");
+            DEBUG_SERIAL.print(cameraIndex);
+            DEBUG_SERIAL.println(": PRESSING -> UNWOUND");
         }
         break;
     default:
