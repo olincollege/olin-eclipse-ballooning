@@ -34,6 +34,7 @@ void setup() {
         windServos[i].attach(windServoPins[i]);
         shutterServos[i].attach(shutterServoPins[i]);
         windLimits[i].attach(windLimitPins[i]);
+        cameras[i].attach(&windServos[i], &shutterServos[i], &windLimits[i]);
     }
     
     triggerButton.attach(TRIGGER_BTN_PIN);
