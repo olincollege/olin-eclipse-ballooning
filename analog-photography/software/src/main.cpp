@@ -1,113 +1,70 @@
 #include "Debounce.h"
+#include "DispoCam.h"
 #include <Arduino.h>
 #include <Servo.h>
 
 #define DEBUG true
 #define DEBUG_SERIAL if (DEBUG) Serial
 
-// HW pin definitions
-#define WINDING_LIM_PIN 2
-#define TRIGGER_BTN_PIN 7
-#define FILM_PIN 5
-#define SHUTTER_PIN 8
+#define CAMERA_AMOUNT 4
 
-#define WIND_DELAY_MS 1000          // time in ms to wait before winding film
+// HW pin definitions
+#define TRIGGER_BTN_PIN 7
+int windServoPins[] = {2, 4, 6, 8};
+int shutterServoPins[] = {3, 5, 7, 9};
+int windLimitPins[] = {10, 11, 12, 13};
 
 // declare servos
-Servo windServo;    // continuous rotation (90 is stopped)
-Servo shutterServo;
+Servo windServos[CAMERA_AMOUNT];    // continuous rotation (90 is stopped)
+Servo shutterServos[CAMERA_AMOUNT];
 
-const int windServoStop = 90;   // "zero" position for servo to stop moving
-const int windServoSpeed = 20;  // added to stop position for moving servo
-const int shutterServoHome = 90;
-const int shutterServoIncrement = 10;
+Debounce windLimits[CAMERA_AMOUNT];
 
-int shutterPos; // current shutter servo position
+DispoCam cameras[CAMERA_AMOUNT];
 
-Debounce triggerButton = Debounce(TRIGGER_BTN_PIN);
-Debounce windLimSwitch = Debounce(WINDING_LIM_PIN);
+Debounce triggerButton;
 
-unsigned long windDelay = 1000;
-unsigned long lastShutterTime = 0;
-
-enum cameraStates {
-    UNWOUND,    // idle; limit open
-    WINDING,    // wind servo active
-    WOUND,      // servos stopped
-    PRESSING,   // shutter servo active
-    UNPRESSING  // shutter servo homing
-};
-
-enum cameraStates cameraState;
+int currentCamera = 0;
+uint8_t camsInTargetState = 0;
+CAM_STATES targetState;
 
 void setup() {
     DEBUG_SERIAL.begin(9600);
-    pinMode(WINDING_LIM_PIN, INPUT_PULLUP);
-    pinMode(TRIGGER_BTN_PIN, INPUT_PULLUP);
-    windServo.attach(FILM_PIN);
-    shutterServo.attach(SHUTTER_PIN);
-
-    // initialize winding limit switch
-    (!digitalRead(WINDING_LIM_PIN)) ? cameraState = WOUND : cameraState = UNWOUND;
-    windServo.write(windServoStop);
-    shutterServo.write(shutterServoHome);
-    shutterPos = shutterServoHome;
+    for (int i = 0; i < CAMERA_AMOUNT; i++) {
+        windServos[i].attach(windServoPins[i]);
+        shutterServos[i].attach(shutterServoPins[i]);
+        windLimits[i].attach(windLimitPins[i]);
+    }
+    
+    triggerButton.attach(TRIGGER_BTN_PIN);
 }
 
 void loop() {
     triggerButton.poll();
-    windLimSwitch.poll();
-
-    // FSM for winding film and taking pictures
-    switch (cameraState) {
-    case UNWOUND:   // reset shutter servo and wait some amount of time
-        // ACTION: reset shutter servo (move to home/idle position)
-        shutterPos = shutterServoHome;
-        shutterServo.write(shutterPos);
-        // STATE CHANGE: if enough time passed → WINDING
-        if ((millis() - lastShutterTime) > windDelay) {
-            cameraState = WINDING;
-            DEBUG_SERIAL.println("UNWOUND -> WINDING");
-        }
-        break;
-    case WINDING:   // wind film until it's wound (switch closes)
-        // ACTION: turn wind servo, poll limit switch
-        windServo.write(windServoStop + windServoSpeed);
-
-        // STATE CHANGE: if wind switch is closed → WOUND
-        if (windLimSwitch.getState()) {
-            cameraState = WOUND;
-            DEBUG_SERIAL.println("WINDING -> WOUND");
-        }
-        break;
-    case WOUND:     // done winding, stop the servo and wait to take picture
-        // ACTION: stop wind servo
-        windServo.write(windServoStop);
-
-        // STATE CHANGE: if trigger button pressed → PRESSING
-        if (triggerButton.getState()) {
-            cameraState = PRESSING;
-            DEBUG_SERIAL.println("WOUND -> PRESSING");
-        }
-        break;
-    case PRESSING:  // take a picture
-        // ACTION: incrementally move shutter servo
-        shutterPos += shutterServoIncrement;
-        if (shutterPos >= 170) {    // constrain servo angle to 10-170°
-            shutterPos = 170;
-        } else if (shutterPos < 10) {
-            shutterPos = 10;
-        }
-        shutterServo.write(shutterPos);
-        
-        // STATE CHANGE: wind switch open → UNWOUND
-        if (!windLimSwitch.getState()) {
-            cameraState = UNWOUND;
-            lastShutterTime = millis(); // reset timer
-            DEBUG_SERIAL.println("PRESSING -> UNWOUND");
-        }
-        break;
-    default:
-        break;
+    camsInTargetState = 0;
+    // update each camera FSM and store whether or not it's in the target state
+    for (int i = 0; i < CAMERA_AMOUNT; i++) {
+        cameras[i].update();
+        camsInTargetState |= (cameras[i].getState() == targetState) << i;
     }
+
+    // instruct cameras to either wind film or take a picture (depending on targetState)
+    if (camsInTargetState & (1 << currentCamera)) {   // if current cam in target state,
+        currentCamera++;    // go to next camera
+    } else {
+        cameras[currentCamera].readyNext(); // otherwise, tell current cam to move to target state
+    }
+
+    if (!~camsInTargetState) {    // if all cams have reached the target state (i.e. they're done doing what they were doing)
+        if (targetState == UNWOUND) {   // after taking pictures, wind film immediately
+            targetState = WOUND;
+        } else if (targetState == WOUND && triggerButton.getState()) {  // after winding film, wait until triggered to take pictures
+            targetState = UNWOUND;
+        }
+    }
+
+    // reset the current camera index when needed
+    if (currentCamera >= CAMERA_AMOUNT) {
+        currentCamera = 0;
+    }   
 }
