@@ -1,10 +1,18 @@
 #include "Debounce.h"
 
-Debounce::Debounce(int pin, int debounceThresh_ms /* = DEFAULT_DEBOUNCE_THRESHOLD_MS*/) : 
-    pin(pin), debounceThresh_ms(debounceThresh_ms) {}
+Debounce::Debounce() {}
 
 SW_STATES Debounce::getState() const {
     return state;
+}
+
+void Debounce::attach(int pin) {
+    pinMode(pin, INPUT_PULLUP);
+    this->pin = pin;
+}
+
+int Debounce::getPin() {
+    return pin;
 }
 
 void Debounce::poll() {
@@ -13,7 +21,7 @@ void Debounce::poll() {
     if (reading != oldReading) {
         lastChange = millis();
     } else  {
-        if ((millis() - lastChange) > debounceThresh_ms && reading != state) {
+        if ((millis() - lastChange) > DEFAULT_DEBOUNCE_THRESHOLD_MS && reading != state) {
             oldState = state;
             state = static_cast<SW_STATES>(reading);
         }

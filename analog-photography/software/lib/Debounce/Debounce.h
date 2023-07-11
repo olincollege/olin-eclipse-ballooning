@@ -11,15 +11,16 @@ enum SW_STATES {
 class Debounce {
     private:
         int pin;
-        unsigned int debounceThresh_ms;
         enum SW_STATES state = OPEN;
         enum SW_STATES oldState = OPEN;
         int oldReading = OPEN;
         unsigned long lastChange = 0;
 
     public:
-        Debounce(int pin, int debounceThresh_ms = DEFAULT_DEBOUNCE_THRESHOLD_MS);
+        Debounce();
         SW_STATES getState() const;
+        int getPin();
+        void attach(int pin);
         void poll();
 };
 
