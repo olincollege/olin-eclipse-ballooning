@@ -9,18 +9,13 @@
 
 SFE_UBLOX_GNSS myGNSS;
 
-// Stepper Motor Initialization
-// Adafruit_MotorShield AFMS = Adafruit_MotorShield();  // Create motor shield object
-// Adafruit_StepperMotor *panMotor = AFMS.getStepper(200, 1);  // Connect stepper motor to port #1
-// Adafruit_StepperMotor *tiltMotor = AFMS.getStepper(200, 2);  // Connect stepper motor to port #2
-
 // Define pin connections
-#define panSwitchPin 22
-#define tiltSwitchPin 23
-const int panMotorDIR = 7;
-const int panMotorSTEP = 6;
-const int tiltMotorDIR = 32;
-const int tiltMotorSTEP = 31;
+#define panSwitchPin 2
+#define tiltSwitchPin 4
+const int panMotorDIR = 32;
+const int panMotorSTEP = 31;
+const int tiltMotorDIR = 7;
+const int tiltMotorSTEP = 6;
 
 // Define motor interface type
 #define motorInterfaceType 1
@@ -60,6 +55,7 @@ void printGPSData();
 void homeStepperMotors();
 float compass();
 float movingAverageFilter(float angle_deg);
+void magnetInterrupt();
 
 void computeSunPos();
 void PVTUpdate(UBX_NAV_PVT_data_t *ubxDataStruct);
@@ -115,7 +111,9 @@ float hMSL;   // height above mean sea level (m)
 
 
 void setup() {
+  while (!Serial){
   Serial.begin(115200);
+  }
   Wire.begin();
   Serial.println("Initializing GPS");
   initializeGPS();
@@ -203,56 +201,26 @@ float compass() {
 }
 
 void homeStepperMotors(){
-  pinMode(panSwitchPin, INPUT_PULLUP);
-  pinMode(tiltSwitchPin, INPUT_PULLUP);
-  while (!Serial);
   panMotor.setMaxSpeed(1000);
   panMotor.setAcceleration(50);
-  panMotor.setSpeed(200);
-  // panMotor.moveTo(200);
+  panMotor.setSpeed(100);
+  pinMode(tiltSwitchPin, INPUT_PULLUP);
   tiltMotor.setMaxSpeed(1000);
   tiltMotor.setAcceleration(50);
-  tiltMotor.setSpeed(200);
-  // tiltMotor.moveTo(200);
-  // while (panMotor.distanceToGo() != 0){
-    // Serial.println("Stepper Motors running.");
-    // panMotor.runSpeed();
-    // tiltMotor.runSpeed();
-  // }
-  while (!panSwitchEnabled || !tiltSwitchEnabled) {
-    panSwitchState = digitalRead(panSwitchPin);
-    tiltSwitchState = digitalRead(tiltSwitchPin);
+  tiltMotor.setSpeed(100);
+  attachInterrupt(panSwitchPin, magnetInterrupt, RISING);
 
-    if (panSwitchState == HIGH) {  // Check if the pan switch is enabled
-      if (!panSwitchEnabled) {
-        Serial.println("Pan Switch Engaged!");
-        panMotor.stop();
-        // panMotor->release();  // Release pan motor if switch is enabled
-        panSwitchEnabled = true;
-        currentPanPos = INIT_PAN_POS;
-        // panMotor.setCurrentPosition(panMotor.currentPosition());
-        // currentPanPos = panMotor.currentPosition();
-      }
-    } else {
-      panSwitchEnabled = false;
-      panMotor.runSpeed();  // Step pan motor forward
-    }
-
-    if (tiltSwitchState == HIGH) {  // Check if the tilt switch is enabled
-      if (!tiltSwitchEnabled) {
-        Serial.println("Tilt Switch Engaged!");
-        tiltMotor.stop();
-        // tiltMotor->release();  // Release tilt motor if switch is enabled
-        tiltSwitchEnabled = true;
-        currentTiltPos = INIT_TILT_POS;
-        // tiltMotor.setCurrentPosition(tiltMotor.currentPosition()+90);
-        // currentTiltPos = panMotor.currentPosition();
-      }
-    } else {
-      tiltSwitchEnabled = false;
-      tiltMotor.runSpeed();  // Step pan motor forward
-    }
+  // Calibrate pan with magnet
+  while (!panSwitchEnabled) {
+    panMotor.runSpeed(); // Step motor forward (unless interrupted by magnet detection)
   }
+  panMotor.stop();
+  
+  while (!digitalRead(tiltSwitchPin)) {
+      tiltMotor.runSpeed();  // Step pan motor forward    
+  }
+  tiltMotor.stop();
+  Serial.println("Stepper Motors are now calibrated");
   delay(500);
 }
 
@@ -291,6 +259,10 @@ float movingAverageFilter(float angle_deg){
   delay(1);
 
   return avgDeg;
+}
+
+void magnetInterrupt() { // Called whenever a magnet/interrupt is detected by the arduino
+  panSwitchEnabled = true;
 }
 
 /*
@@ -402,6 +374,7 @@ void adjustCameraTiltAngle() {
     if (tiltDiff < 0.0) {
       steps = -steps;
     }
+    // TODO: Find the max number of steps that the tilting can happen before it reaches the limits, do not pass this point.
 
     // Step the motor in the appropriate direction
     tiltMotor.runToNewPosition(steps);
