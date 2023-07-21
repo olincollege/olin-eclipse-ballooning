@@ -10,8 +10,9 @@
 SFE_UBLOX_GNSS myGNSS;
 
 // Define pin connections
-#define panSwitchPin 2
-#define tiltSwitchPin 4
+#define hallEffectPin 2
+#define topLimitPin 4
+#define bottomLimitPin 5
 const int panMotorDIR = 32;
 const int panMotorSTEP = 31;
 const int tiltMotorDIR = 7;
@@ -56,6 +57,8 @@ void homeStepperMotors();
 float compass();
 float movingAverageFilter(float angle_deg);
 void magnetInterrupt();
+void topLimitInterrupt();
+void bottomLimitInterrupt();
 
 void computeSunPos();
 void PVTUpdate(UBX_NAV_PVT_data_t *ubxDataStruct);
@@ -67,7 +70,7 @@ void adjustCameraTiltAngle();
 void adjustCameraPanAngle();
 
 // Rolling Average Code
-const int numReadings = 100;
+const int numReadings = 50;
 float x_readings[numReadings] = {0}; // Array to store the x-coordinates of the readings
 float y_readings[numReadings] = {0}; // Array to store the y-coordinates of the readings
 int readIndex = 0;
@@ -82,17 +85,22 @@ float convertedValue; // Converts and maintains the adjusted value within the 36
 double azimuth, altitude; // double containing the azimuth and altitude of the sun.
 float stepperPanAngle;  // Current stepper motor position
 float currentTiltMotorPosition;  // Current stepper motor position
-const float PAN_TOLERANCE = 5.0;  // Tolerance for camera pan angle (in degrees)
-const float TILT_TOLERANCE = 5.0;  // Tolerance for camera tilt angle (in degrees)
+const float PAN_TOLERANCE = 3.0;  // Tolerance for camera pan angle (in degrees)
+const float TILT_TOLERANCE = 3.0;  // Tolerance for camera tilt angle (in degrees)
 const float RECALIBRATION_TOLERANCE = 4.0;  // Tolerance for re-running the code (in degrees)
-const int INIT_PAN_POS = 0;
+const int INIT_PAN_POS = 270;
 const int INIT_TILT_POS = 90;
-const float GEAR_RATIO = 1.0 / 4.0;
+const float PAN_GEAR_RATIO = 1.0 / 3.0;
+const float TILT_GEAR_RATIO = 1.0 / 4.0;
 const float STEPPER_STEP_SIZE = 1.8;
-const float STEP_SIZE = GEAR_RATIO * STEPPER_STEP_SIZE;
+const float PAN_STEP_SIZE = PAN_GEAR_RATIO * STEPPER_STEP_SIZE;
+const float TILT_STEP_SIZE = TILT_GEAR_RATIO * STEPPER_STEP_SIZE;
 
 double currentPanPos = INIT_PAN_POS;
 double currentTiltPos = INIT_TILT_POS;
+// Global variables to track limit switch states
+volatile bool topLimitReached = false;
+volatile bool bottomLimitReached = false;
 
 float timeDelta; // change in time
 unsigned long millisOld;
@@ -132,21 +140,31 @@ void loop() {
   unsigned long now = millis();
   myGNSS.checkUblox(); // Check for the arrival of new data and process it.
   myGNSS.checkCallbacks(); // Check if any callbacks are waiting to be processed.
-
-  if (now - lastIMURead > 100) {
-    movingAverageFilter(compass());
-    // Serial.print("Compass Output: ");
-    // Serial.println(avgDeg);
-    // Serial.println("Adjusting Pan Angle");
-    adjustCameraPanAngle();
-    // Serial.println("Adjusting Tilt Angle");
-    adjustCameraTiltAngle();
-    lastIMURead = now;
-  }
-  if (now - lastGPSPrint > 2000) {
-    printGPSData();
-    lastGPSPrint = now;
-  }
+  // compass();
+  // Serial.print("Current IMU Pitch: ");
+  // Serial.println(ypr.pitch);
+  // if (now < 5000) {
+  //   movingAverageFilter(compass());
+  //   Serial.println(now);
+  // } else {
+    if (now - lastIMURead > 100) {
+      // movingAverageFilter(compass());
+      convertTo360(compass());
+      // Serial.print("Compass Output (Yaw): ");
+      // Serial.println(convertTo360(ypr.yaw));
+      // Serial.print("Tilt Output (Pitch): ");
+      // Serial.println(ypr.pitch);
+      Serial.println("Adjusting Pan Angle");
+      adjustCameraPanAngle();
+      Serial.println("Adjusting Tilt Angle");
+      adjustCameraTiltAngle();
+      lastIMURead = now;
+    }
+    if (now - lastGPSPrint > 2000) {
+      printGPSData();
+      lastGPSPrint = now;
+    }
+  // }
 }
 
 void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees) {
@@ -183,7 +201,7 @@ void setReports(void) {
  */
 float compass() {
   if (bno08x.wasReset()) {
-    Serial.print("sensor was reset ");
+    Serial.print("BNO sensor was reset, ");
     setReports();
   }
   if (bno08x.getSensorEvent(&sensorValue)) {
@@ -201,14 +219,22 @@ float compass() {
 }
 
 void homeStepperMotors(){
+
+  // Set up the interrupt pins for the limit switches
+  pinMode(topLimitPin, INPUT_PULLUP);
+  pinMode(bottomLimitPin, INPUT_PULLUP);
+  
+  // Attach the interrupt handlers to the corresponding pins
+  attachInterrupt(digitalPinToInterrupt(topLimitPin), topLimitInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(bottomLimitPin), bottomLimitInterrupt, CHANGE);
+  attachInterrupt(hallEffectPin, magnetInterrupt, RISING);
+
   panMotor.setMaxSpeed(1000);
   panMotor.setAcceleration(50);
   panMotor.setSpeed(100);
-  pinMode(tiltSwitchPin, INPUT_PULLUP);
   tiltMotor.setMaxSpeed(1000);
   tiltMotor.setAcceleration(50);
   tiltMotor.setSpeed(100);
-  attachInterrupt(panSwitchPin, magnetInterrupt, RISING);
 
   // Calibrate pan with magnet
   while (!panSwitchEnabled) {
@@ -216,7 +242,7 @@ void homeStepperMotors(){
   }
   panMotor.stop();
   
-  while (!digitalRead(tiltSwitchPin)) {
+  while (!digitalRead(topLimitPin)) {
       tiltMotor.runSpeed();  // Step pan motor forward    
   }
   tiltMotor.stop();
@@ -224,6 +250,17 @@ void homeStepperMotors(){
   delay(500);
 }
 
+// Interrupt handler for the top limit switch
+void topLimitInterrupt() {
+  topLimitReached = true;
+}
+
+// Interrupt handler for the bottom limit switch
+void bottomLimitInterrupt() {
+  bottomLimitReached = true;
+}
+//! Potentially change the function to use a type so that it selects between the
+//! two different pan/tilt movingAverageFilter(float angle_deg, int type)
 float movingAverageFilter(float angle_deg){
   // Moving Average Filter
   float angle_rad = angle_deg * PI / 180.0; // Convert to radians
@@ -243,7 +280,8 @@ float movingAverageFilter(float angle_deg){
     x_total += x_readings[i];
     y_total += y_readings[i];
   }
-
+  // TODO: Find out the current number of values, and then divide the current
+  // TODO: values by the number of values, if the number of values is less than numReadings.
   // Compute the average in Cartesian coordinates
   float x_avg = x_total / numReadings;
   float y_avg = y_total / numReadings;
@@ -318,8 +356,8 @@ void printGPSData() {
 void adjustCameraPanAngle() {
   // Calculate the difference between the target azimuth and the current motor position
   Serial.println("");
-  Serial.println("-- Error Detection Loop --");
-  double azimuthDiff = azimuth - avgDeg - currentPanPos;
+  Serial.println("-- Pan Detection Loop --");
+  double azimuthDiff = azimuth - ypr.yaw - currentPanPos;
   Serial.print("Compass Average Output: ");
   Serial.println(avgDeg);
   Serial.print("Azimuth of the Sun: ");
@@ -340,7 +378,7 @@ void adjustCameraPanAngle() {
   double absAzimuthDiff = abs(azimuthDiff);
   if (absAzimuthDiff > PAN_TOLERANCE) {
     // Convert the azimuth difference to the number of steps for the stepper motor
-    int steps = static_cast<int>(absAzimuthDiff / STEP_SIZE);
+    int steps = static_cast<int>(absAzimuthDiff / PAN_STEP_SIZE);
 
     if (azimuthDiff < 0.0) {
       steps = -steps;
@@ -358,29 +396,60 @@ void adjustCameraPanAngle() {
     }
   } else {
     // Camera position is within the tolerance region
-    Serial.print("Stepper motor is in tolerance. Current position: ");
+    Serial.print("Pan motor is in tolerance. Current position: ");
     Serial.println(currentPanPos);
   }
 }
 
 void adjustCameraTiltAngle() {
   // Calculate the difference between the target altitude and the current motor position
-  float tiltDiff = altitude - ypr.pitch - currentTiltPos;
-  // float tiltDiff = altitude - ypr.pitch - tiltMotor.currentPosition();
+  if (altitude < 0){
+    altitude = -altitude;
+  }
+  Serial.println("-- Tilt Detection Loop --");
+  float tiltDiff = altitude - ypr.pitch + 1.9 - currentTiltPos;
+  Serial.print("Gyro Pitch: ");
+  Serial.println(ypr.pitch + 1.5);
+  Serial.print("Altitude of the Sun: ");
+  Serial.println(altitude);
+  Serial.print("Difference from the Altitude of the Sun: ");
+  Serial.println(tiltDiff);
+  Serial.print("Current Tilt Position: ");
+  Serial.println(currentTiltPos);
+
+
   // Determine the most efficient direction of movement (up or down)
   if (abs(tiltDiff) > TILT_TOLERANCE) {
     // Convert the tilt difference to the number of steps for the stepper motor
-    int steps = static_cast<int>(abs(tiltDiff) / STEP_SIZE);
+    int steps = static_cast<int>(abs(tiltDiff) / TILT_STEP_SIZE);
     if (tiltDiff < 0.0) {
       steps = -steps;
     }
+    
     // TODO: Find the max number of steps that the tilting can happen before it reaches the limits, do not pass this point.
+    int maxSteps = 0;
+
+    if (steps < 0) {
+      // Limit the downward tilt to prevent going below the bottom limit switch
+      if (!bottomLimitReached) {
+        maxSteps = max(steps, -currentTiltPos / TILT_STEP_SIZE);
+      }
+    } else {
+      // Limit the upward tilt to prevent going above the top limit switch
+      if (!topLimitReached) {
+        maxSteps = min(steps, (90 - currentTiltPos) / TILT_STEP_SIZE);
+      }
+    }
 
     // Step the motor in the appropriate direction
-    tiltMotor.runToNewPosition(steps);
+    tiltMotor.runToNewPosition(maxSteps);
 
     // Update the current position
-    currentTiltPos += tiltDiff;
+    currentTiltPos += maxSteps * TILT_STEP_SIZE;
+  } else {
+    // Camera position is within the tolerance region
+    Serial.print("Tilt motor is in tolerance. Current position: ");
+    Serial.println(currentTiltPos);
   }
 }
 
