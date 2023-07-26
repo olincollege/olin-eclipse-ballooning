@@ -10,9 +10,9 @@ DispoCam::DispoCam() {
     cameraIndex = cameraCount - 1;
 }
 
-DispoCam::DispoCam(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch) :
+DispoCam::DispoCam(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch, int maxPics /* = DEFAULT_MAX_PICS*/) :
     windServo(windServo), shutterServo(shutterServo), limitSwitch(limitSwitch),
-    state(!digitalRead(limitSwitch->getPin()) ? WOUND : UNWOUND)
+    state(!digitalRead(limitSwitch->getPin()) ? WOUND : UNWOUND), maxPics(maxPics), picsRemaining(maxPics)
 {
     windServo->write(windServoStop);
     shutterServo->write(shutterServoHome);
@@ -24,10 +24,16 @@ CAM_STATES DispoCam::getState() {
     return state;
 }
 
-void DispoCam::attach(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch) {
+int DispoCam::getPicsRemaining() {
+    return picsRemaining;
+}
+
+void DispoCam::attach(Servo *windServo, Servo *shutterServo, Debounce *limitSwitch, int maxPics /* = DEFAULT_MAX_PICS*/) {
     this->windServo = windServo;
     this->shutterServo = shutterServo;
     this->limitSwitch = limitSwitch;
+    this->maxPics = maxPics;
+    this->picsRemaining = maxPics;
     windServo->write(windServoStop);
     shutterServo->write(shutterServoHome);
     this->state = !digitalRead(limitSwitch->getPin()) ? WOUND : UNWOUND;
@@ -51,7 +57,7 @@ void DispoCam::update() {
         shutterPos = shutterServoHome;
         shutterServo->write(shutterPos);
         // STATE CHANGE: if enough time passed → WINDING
-        if ((millis() - lastShutterTime) > windDelay_ms && nextStateReady) {
+        if ((millis() - lastShutterTime) > windDelay_ms && nextStateReady && picsRemaining > 0) {
             state = WINDING;
             nextStateReady = false;
             DEBUG_SERIAL.print("Camera ");
@@ -66,6 +72,7 @@ void DispoCam::update() {
         // STATE CHANGE: if wind switch is closed → WOUND
         if (limitSwitch->getState()) {
             state = WOUND;
+            windServo->write(windServoStop);
             nextStateReady = false;
             DEBUG_SERIAL.print("Camera ");
             DEBUG_SERIAL.print(cameraIndex);
@@ -97,6 +104,7 @@ void DispoCam::update() {
         
         // STATE CHANGE: wind switch open → UNWOUND
         if (!limitSwitch->getState()) {
+            picsRemaining--;
             state = UNWOUND;
             lastShutterTime = millis(); // reset timer
             nextStateReady = false;
