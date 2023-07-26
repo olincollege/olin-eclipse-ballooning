@@ -238,15 +238,17 @@ void homeStepperMotors()
     // Calibrate pan with magnet and tilt with limit switch
     while (!panSwitchEnabled || !digitalRead(topLimitPin))
     {
-        panMotor.runSpeed(); // Step motor forward (unless interrupted by magnet detection)
-    }
-    panMotor.stop();
+        if (!panSwitchEnabled)
+            panMotor.runSpeed(); // Step motor forward (unless interrupted by magnet detection)
+        else
+            panMotor.stop();
 
-    while (!digitalRead(topLimitPin))
-    {
-        tiltMotor.runSpeed(); // Step pan motor forward
+        if (!digitalRead(topLimitPin))
+            tiltMotor.runSpeed(); // Step pan motor forward
+        else
+            tiltMotor.stop();
     }
-    tiltMotor.stop();
+
     Serial.println("Stepper Motors are now calibrated");
     delay(250);
     tiltMotor.setCurrentPosition(tilt_angle_to_steps(INIT_TILT_POS));
