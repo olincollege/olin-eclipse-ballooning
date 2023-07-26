@@ -86,16 +86,16 @@ float convertedValue; // Converts and maintains the adjusted value within the 36
 double azimuth, altitude;                  // double containing the azimuth and altitude of the sun.
 float stepperPanAngle;                     // Current stepper motor position
 float currentTiltMotorPosition;            // Current stepper motor position
-const float PAN_TOLERANCE = 3.0;           // Tolerance for camera pan angle (in degrees)
-const float TILT_TOLERANCE = 3.0;          // Tolerance for camera tilt angle (in degrees)
-const float RECALIBRATION_TOLERANCE = 4.0; // Tolerance for re-running the code (in degrees)
+const float PAN_TOLERANCE = 2.0;           // Tolerance for camera pan angle (in degrees)
+const float TILT_TOLERANCE = 2.0;          // Tolerance for camera tilt angle (in degrees)
+const float RECALIBRATION_TOLERANCE = 3.0; // Tolerance for re-running the code (in degrees)
 const int INIT_PAN_POS = 0;
 const int INIT_TILT_POS = 90;
 const float PAN_GEAR_RATIO = 1.0 / 3.0;
 const float TILT_GEAR_RATIO = 1.0 / 4.0;
 const float STEPPER_STEP_SIZE = 1.8;
-const float PAN_STEP_SIZE = PAN_GEAR_RATIO * STEPPER_STEP_SIZE;
-const float TILT_STEP_SIZE = TILT_GEAR_RATIO * STEPPER_STEP_SIZE;
+const float PAN_STEP_SIZE = PAN_GEAR_RATIO * STEPPER_STEP_SIZE / 2;
+const float TILT_STEP_SIZE = TILT_GEAR_RATIO * STEPPER_STEP_SIZE / 4;
 
 double currentPanPos = INIT_PAN_POS;
 double currentTiltPos = INIT_TILT_POS;
@@ -242,11 +242,11 @@ void homeStepperMotors()
   attachInterrupt(hallEffectPin, magnetInterrupt, RISING);
 
   panMotor.setMaxSpeed(1000);
-  panMotor.setAcceleration(50);
-  panMotor.setSpeed(100);
+  panMotor.setAcceleration(100);
+  panMotor.setSpeed(200);
   tiltMotor.setMaxSpeed(1000);
-  tiltMotor.setAcceleration(50);
-  tiltMotor.setSpeed(100);
+  tiltMotor.setAcceleration(100);
+  tiltMotor.setSpeed(200);
 
   // Calibrate pan with magnet
   while (!panSwitchEnabled)
@@ -420,7 +420,7 @@ void adjustCameraPanAngle()
   Serial.println(azimuth);
   Serial.print("Difference from the Azimuth of the Sun: ");
   Serial.println(azimuthDiff);
-  Serial.print("Box Orientation: ");
+  Serial.print("Compass yaw: ");
   Serial.println(boxAngle);
   Serial.print("Current Pan Position: ");
   Serial.println(currentPanPos);
@@ -469,15 +469,40 @@ void adjustCameraTiltAngle()
   {
     altitude = -altitude;
   }
+
+  // set roll and pitch angles to a number between -180 to 180
+  float rollDegrees = 360 - convertTo360(ypr.roll); // also flips the positive axis
+  if (rollDegrees > 180.0)
+  {
+    rollDegrees -= 360.0;
+  }
+
+  float pitchDegrees = convertTo360(ypr.pitch);
+  if (pitchDegrees > 180.0)
+  {
+    pitchDegrees -= 360.0;
+  }
+
+  float tiltAdj = rollDegrees * cos(currentPanPos * (PI / 180)) + pitchDegrees * sin(currentPanPos * (PI / 180));
+
   Serial.println("");
   Serial.println("-- Tilt Detection Loop --");
-  float tiltDiff = altitude + ypr.pitch - currentTiltPos - 5.62;
+
+  float compassMountOffset = 0;
+
+  float tiltDiff = altitude - currentTiltPos - tiltAdj - compassMountOffset;
+
   Serial.print("Gyro Pitch: ");
-  Serial.println(ypr.pitch - 5.62);
+  Serial.println(ypr.pitch - compassMountOffset);
   Serial.print("Altitude of the Sun: ");
   Serial.println(altitude);
   Serial.print("Difference from the Altitude of the Sun: ");
   Serial.println(tiltDiff);
+  Serial.print("Compass pitch: ");
+  Serial.println(convertTo360(ypr.pitch));
+  Serial.print("Compass roll: ");
+  Serial.println(360 - convertTo360(ypr.roll));
+
   Serial.print("Current Tilt Position: ");
   Serial.println(currentTiltPos);
   Serial.print("Current Tilt Motor Position: ");
