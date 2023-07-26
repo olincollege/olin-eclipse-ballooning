@@ -77,16 +77,16 @@ const int INIT_PAN_POS = 0;                // angle of pan motor at home in degr
 const int INIT_TILT_POS = 90;              // angle of tilt motor at home in degrees
 const float PAN_GEAR_RATIO = 1.0 / 3.0;
 const float TILT_GEAR_RATIO = 1.0 / 4.0;
-const int PAN_MICROSTEP = 2;
+const int PAN_MICROSTEP = 4;
 const int TILT_MICROSTEP = 4;
 const float STEPPER_STEP_ANGLE = 1.8; // degrees/step without microsteps, gearing, etc
 // degrees per step with microsteps and gearing
 const float PAN_STEP_SIZE = PAN_GEAR_RATIO * STEPPER_STEP_ANGLE / PAN_MICROSTEP;
 const float TILT_STEP_SIZE = TILT_GEAR_RATIO * STEPPER_STEP_ANGLE / TILT_MICROSTEP;
-#define pan_angle_to_steps(angle) (angle / PAN_STEP_SIZE)
-#define tilt_angle_to_steps(angle) (angle / TILT_STEP_SIZE)
-#define pan_steps_to_angle(steps) (steps * PAN_STEP_SIZE)
-#define tilt_steps_to_angle(steps) (steps * TILT_STEP_SIZE)
+#define pan_angle_to_steps(angle) ((angle) / PAN_STEP_SIZE)
+#define tilt_angle_to_steps(angle) ((angle) / TILT_STEP_SIZE)
+#define pan_steps_to_angle(steps) ((steps)*PAN_STEP_SIZE)
+#define tilt_steps_to_angle(steps) ((steps)*TILT_STEP_SIZE)
 
 double currentPanPos = INIT_PAN_POS;
 double currentTiltPos = INIT_TILT_POS;
@@ -126,20 +126,18 @@ void setup()
     loc.pressure = FIXED_NOM_PRESSURE;
     loc.temperature = FIXED_NOM_TEMP;
     computeSunPos();
-    delay(2000);
 }
 
 void loop()
 {
     unsigned long now = millis();
-    // Configure this so that GPS
     myGNSS.checkUblox();     // Check for the arrival of new data and process it.
     myGNSS.checkCallbacks(); // Check if any callbacks are waiting to be processed.
     // if (loc.latitude != 0)
     if (now < 5000)
     {
         compass();
-        Serial.println(now);
+        // Serial.println(now);
     }
     else
     {
@@ -156,6 +154,8 @@ void loop()
             lastGPSPrint = now;
         }
     }
+    panMotor.run();
+    tiltMotor.run();
 }
 
 void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t *ypr, bool degrees)
@@ -228,12 +228,12 @@ void homeStepperMotors()
     attachInterrupt(digitalPinToInterrupt(topLimitPin), topLimitInterrupt, CHANGE);
     attachInterrupt(hallEffectPin, magnetInterrupt, RISING);
 
-    panMotor.setMaxSpeed(1000);
-    panMotor.setAcceleration(100);
-    panMotor.setSpeed(200);
-    tiltMotor.setMaxSpeed(1000);
-    tiltMotor.setAcceleration(100);
-    tiltMotor.setSpeed(200);
+    panMotor.setMaxSpeed(360 / PAN_STEP_SIZE / 2); // max 0.5 revolution/sec
+    panMotor.setAcceleration(panMotor.maxSpeed());
+    panMotor.setSpeed(panMotor.maxSpeed() / 3);
+    tiltMotor.setMaxSpeed(360 / TILT_STEP_SIZE / 2);
+    tiltMotor.setAcceleration(tiltMotor.maxSpeed());
+    tiltMotor.setSpeed(tiltMotor.maxSpeed() / 3);
 
     // Calibrate pan with magnet and tilt with limit switch
     while (!panSwitchEnabled || !digitalRead(topLimitPin))
@@ -252,7 +252,7 @@ void homeStepperMotors()
     Serial.println("Stepper Motors are now calibrated");
     delay(250);
     tiltMotor.setCurrentPosition(tilt_angle_to_steps(INIT_TILT_POS));
-    delay(250);
+    panMotor.setCurrentPosition(pan_angle_to_steps(INIT_PAN_POS));
 }
 
 // Interrupt handler for the top limit switch
@@ -322,8 +322,8 @@ void printGPSData()
  */
 void adjustCameraPanAngle()
 {
-    Serial.println("");
-    Serial.println("-- Pan Detection Loop --");
+    // Serial.println("");
+    // Serial.println("-- Pan Detection Loop --");
 
     // Convert compass yaw to degrees East (positive clockwise)
     double boxAngle = convertTo360(ypr.yaw);
@@ -355,38 +355,35 @@ void adjustCameraPanAngle()
     }
 
     // Print current values
-    Serial.print("Azimuth of the Sun: ");
-    Serial.println(azimuth);
-    Serial.print("Difference from the Azimuth of the Sun: ");
-    Serial.println(azimuthDiff);
-    Serial.print("Compass yaw: ");
-    Serial.println(boxAngle);
-    Serial.print("Current Pan Position: ");
-    Serial.println(currentPanPos);
-    Serial.print("Current Pan Motor Position: ");
-    Serial.println(panMotor.currentPosition());
-    Serial.print("Camera Direction: ");
-    Serial.println(cameraDirection);
+    // Serial.print("Azimuth of the Sun: ");
+    // Serial.println(azimuth);
+    // Serial.print("Difference from the Azimuth of the Sun: ");
+    // Serial.println(azimuthDiff);
+    // Serial.print("Compass yaw: ");
+    // Serial.println(boxAngle);
+    // Serial.print("Current Pan Position: ");
+    // Serial.println(currentPanPos);
+    // Serial.print("Current Pan Motor Position: ");
+    // Serial.println(panMotor.currentPosition());
+    // Serial.print("Camera Direction: ");
+    // Serial.println(cameraDirection);
 
     // Determine the most efficient direction of movement (clockwise or counterclockwise)
-    double absAzimuthDiff = abs(azimuthDiff);
-    if (absAzimuthDiff > PAN_TOLERANCE)
+    if (abs(azimuthDiff) > PAN_TOLERANCE)
     {
         // Convert the azimuth difference to the number of steps for the stepper motor
-        int steps = static_cast<int>(pan_angle_to_steps(absAzimuthDiff));
+        int steps = static_cast<int>(pan_angle_to_steps(azimuthDiff));
 
-        if (azimuthDiff < 0.0)
-        {
-            steps = -steps;
-        }
-        Serial.print("Steps to take: ");
-        Serial.println(steps);
+        // Serial.print("Steps to take: ");
+        // Serial.println(steps);
 
         // Step the motor in the appropriate direction
-        panMotor.runToNewPosition(panMotor.currentPosition() + steps);
+        // panMotor.runToNewPosition(panMotor.currentPosition() + steps);
+        panMotor.moveTo(panMotor.targetPosition() + steps);
+        // panMotor.setSpeed(panMotor.maxSpeed() / 2 * ((panMotor.speed() > 0) ? 1 : -1));
 
         // Update the current position
-        currentPanPos += azimuthDiff;
+        currentPanPos = pan_steps_to_angle(panMotor.targetPosition());
         currentPanPos = fmod(currentPanPos, 360.0);
         if (currentPanPos < 0.0)
         {
@@ -396,14 +393,15 @@ void adjustCameraPanAngle()
     else
     {
         // Camera position is within the tolerance region
-        Serial.print("Pan motor is in tolerance. Current position: ");
+        // Serial.print("Pan motor is in tolerance. Current position: ");
     }
+    // Serial.println(currentPanPos);
 }
 
 void adjustCameraTiltAngle()
 {
     // Calculate the difference between the target altitude and the current motor position
-    altitude = 45;
+    // altitude = 45;
     if (altitude < 0)
     {
         altitude = -altitude;
@@ -424,28 +422,28 @@ void adjustCameraTiltAngle()
 
     float tiltAdj = rollDegrees * cos(currentPanPos * (PI / 180)) + pitchDegrees * sin(currentPanPos * (PI / 180));
 
-    Serial.println("");
-    Serial.println("-- Tilt Detection Loop --");
+    // Serial.println("");
+    // Serial.println("-- Tilt Detection Loop --");
 
     float compassMountOffset = 0;
 
     float tiltDiff = altitude - currentTiltPos - tiltAdj - compassMountOffset;
 
-    Serial.print("Gyro Pitch: ");
-    Serial.println(ypr.pitch - compassMountOffset);
-    Serial.print("Altitude of the Sun: ");
-    Serial.println(altitude);
-    Serial.print("Difference from the Altitude of the Sun: ");
-    Serial.println(tiltDiff);
-    Serial.print("Compass pitch: ");
-    Serial.println(convertTo360(ypr.pitch));
-    Serial.print("Compass roll: ");
-    Serial.println(360 - convertTo360(ypr.roll));
+    // Serial.print("Gyro Pitch: ");
+    // Serial.println(ypr.pitch - compassMountOffset);
+    // Serial.print("Altitude of the Sun: ");
+    // Serial.println(altitude);
+    // Serial.print("Difference from the Altitude of the Sun: ");
+    // Serial.println(tiltDiff);
+    // Serial.print("Compass pitch: ");
+    // Serial.println(convertTo360(ypr.pitch));
+    // Serial.print("Compass roll: ");
+    // Serial.println(360 - convertTo360(ypr.roll));
 
-    Serial.print("Current Tilt Position: ");
-    Serial.println(currentTiltPos);
-    Serial.print("Current Tilt Motor Position: ");
-    Serial.println(tiltMotor.currentPosition());
+    // Serial.print("Current Tilt Position: ");
+    // Serial.println(currentTiltPos);
+    // Serial.print("Current Tilt Motor Position: ");
+    // Serial.println(tiltMotor.currentPosition());
 
     // Determine the most efficient direction of movement (up or down)
     if (abs(tiltDiff) > TILT_TOLERANCE)
@@ -456,21 +454,23 @@ void adjustCameraTiltAngle()
         {
             steps = -steps;
         }
-        Serial.print("Steps: ");
-        Serial.println(steps);
+        // Serial.print("Steps: ");
+        // Serial.println(steps);
 
-        Serial.println(tilt_angle_to_steps(-currentTiltPos));
-        Serial.print("Top limit: ");
-        Serial.println(topLimitReached);
-        Serial.println(tilt_angle_to_steps(90 - currentTiltPos));
+        // Serial.println(tilt_angle_to_steps(-currentTiltPos));
+        // Serial.print("Top limit: ");
+        // Serial.println(topLimitReached);
+        // Serial.println(tilt_angle_to_steps(90 - currentTiltPos));
 
         // Cap the number of steps to prevent going past the physical limit
         steps = max(steps, tilt_angle_to_steps(-currentTiltPos));
         steps = min(steps, tilt_angle_to_steps(90 - currentTiltPos));
-        Serial.print("Capped steps: ");
-        Serial.println(steps);
+        // Serial.print("Capped steps: ");
+        // Serial.println(steps);
         // Step the motor in the appropriate direction
-        tiltMotor.runToNewPosition(steps + tiltMotor.currentPosition());
+        // tiltMotor.runToNewPosition(steps + tiltMotor.currentPosition());
+        tiltMotor.moveTo(steps + tiltMotor.targetPosition());
+        // tiltMotor.setSpeed(tiltMotor.maxSpeed() / 2 * ((tiltMotor.speed() > 0) ? 1 : -1));
 
         // Update the current position
         currentTiltPos += tilt_steps_to_angle(steps);
@@ -478,8 +478,8 @@ void adjustCameraTiltAngle()
     else
     {
         // Camera position is within the tolerance region
-        Serial.print("Tilt motor is in tolerance. Current position: ");
-        Serial.println(currentTiltPos);
+        // Serial.print("Tilt motor is in tolerance. Current position: ");
+        // Serial.println(currentTiltPos);
     }
 }
 
