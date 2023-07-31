@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Dispocam_Hub")(type "KiCad")(uri "${KIPRJMOD}/Dispocam_Hub.kicad_sym")(options "")(descr ""))
+)
