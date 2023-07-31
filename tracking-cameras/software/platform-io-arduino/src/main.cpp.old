@@ -77,7 +77,7 @@ const int INIT_PAN_POS = 0;                // angle of pan motor at home in degr
 const int INIT_TILT_POS = 90;              // angle of tilt motor at home in degrees
 const float PAN_GEAR_RATIO = 1.0 / 3.0;
 const float TILT_GEAR_RATIO = 1.0 / 4.0;
-const int PAN_MICROSTEP = 4;
+const int PAN_MICROSTEP = 2;
 const int TILT_MICROSTEP = 4;
 const float STEPPER_STEP_ANGLE = 1.8; // degrees/step without microsteps, gearing, etc
 // degrees per step with microsteps and gearing
