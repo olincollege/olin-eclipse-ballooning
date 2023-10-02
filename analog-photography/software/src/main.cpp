@@ -6,20 +6,21 @@
 #include <SerialCommands.h>
 
 #define DEBUG true
-#define DEBUG_SERIAL if (DEBUG) Serial
+#define DEBUG_SERIAL \
+    if (DEBUG)       \
+    Serial
 
 #define CAMERA_AMOUNT 4
 
 // HW pin definitions
-// #define TRIGGER_BTN_PIN 15
-const int windServoPins[] = {14, 15, 22, 12};
-const int shutterServoPins[] = {16, 23, 11, 13};
-const int windLimitPins[] = {5, 6, 9, 10};
+const int startButtonPin = 20;
+const int windServoPins[] = {12, 10, 6, 16};
+const int shutterServoPins[] = {11, 9, 5, 14};
+const int windLimitPins[] = {21, 22, 23, 15};
 
 RTC_DS3231 rtc;
 DateTime lastPictureTime;
-const int32_t pictureInterval = 15*60; // time between pictures in seconds
-// TODO: replace preset interval with specific times calculated based on eclipse times
+const int32_t pictureInterval = 10 * 60; // time between pictures in seconds
 
 // ALL TIMES IN UTC
 // eclipse times for junction, tx (30.4893°, -99.7714°, Height:	522m)
@@ -48,14 +49,14 @@ DateTime lastTimePrint = DateTime();
 #endif
 
 // declare servos
-Servo windServos[CAMERA_AMOUNT];    // continuous rotation (90 is stopped)
+Servo windServos[CAMERA_AMOUNT]; // continuous rotation (90 is stopped)
 Servo shutterServos[CAMERA_AMOUNT];
 
 Debounce windLimits[CAMERA_AMOUNT];
 
 DispoCam cameras[CAMERA_AMOUNT];
 
-Debounce triggerButton;
+Debounce startButton;
 bool triggerFlag = false;
 // once set to true by button press, a picture is taken after the set pictureInterval elapses until
 // out of film
@@ -69,111 +70,141 @@ CAM_STATES targetState = WOUND;
 char serial_command_buffer_[32];
 SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
 
-void cmd_pic(SerialCommands* sender) {
+unsigned long lastLedChange = 0;
+int ledState = LOW;
+
+void cmd_pic(SerialCommands *sender)
+{
     triggerFlag = true;
 }
 
 SerialCommand cmd_pic_("PIC", cmd_pic);
 
-void setup() {
+void setup()
+{
     DEBUG_SERIAL.begin(9600);
 
-    if (!rtc.begin()) {
+    pinMode(LED_BUILTIN, OUTPUT);
+
+    if (!rtc.begin())
+    {
         DEBUG_SERIAL.println("Couldn't find RTC");
         DEBUG_SERIAL.flush();
-        while (1) delay(10);
+        digitalWrite(LED_BUILTIN, HIGH); // turn LED on if there's a problem
+        while (1)
+            delay(10);
     }
 
-    if (rtc.lostPower()) {
+    if (rtc.lostPower())
+    {
         DEBUG_SERIAL.println("RTC lost power, let's set the time!");
         // When time needs to be set on a new device, or after a power loss, the
         // following line sets the RTC to the date & time this sketch was compiled
-        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)) + TimeSpan(0, 4, 0, 0));  // adding 4 hours to convert from EDT to UTC
+        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)) + TimeSpan(0, 4, 0, 0)); // adding 4 hours to convert from EDT to UTC
         // This line sets the RTC with an explicit date & time, for example to set
         // January 21, 2014 at 3am you would call:
         // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
     }
 
-    for (int i = 0; i < CAMERA_AMOUNT; i++) {
+    for (int i = 0; i < CAMERA_AMOUNT; i++)
+    {
         windServos[i].attach(windServoPins[i]);
         shutterServos[i].attach(shutterServoPins[i]);
         windLimits[i].attach(windLimitPins[i]);
         cameras[i].attach(&windServos[i], &shutterServos[i], &windLimits[i]);
     }
+    startButton.attach(startButtonPin);
     serial_commands_.AddCommand(&cmd_pic_);
-
-    // triggerButton.attach(TRIGGER_BTN_PIN);
 }
 
 // only sets the trigger flag to true - it is unset in the loop when the shutter activates
 // this prevents an early trigger (e.g. when the film is being wound) from being ignored
-void updateTriggerCondition() {
-    // triggerButton.poll();
-    // DateTime now = rtc.now();
-    // if (startFlag) {
-    //     if ((!triggerFlag) && ((now - lastPictureTime).totalseconds() >= pictureInterval)) {
-    //         DEBUG_SERIAL.println("Trigger flag set!");
-    //         triggerFlag = true;
-    //         lastPictureTime = now;
-    //     }
-    // } else if (triggerButton.getState()) {
-    //     DEBUG_SERIAL.println("Start flag set!");
-    //     startFlag = true;
-    //     lastPictureTime = now;
-    // }
-    // triggerFlag = startFlag && (triggerButton.getState() || triggerFlag);    // for manual operation
+void updateTriggerCondition()
+{
+    startButton.poll();
+    DateTime now = rtc.now();
+    unsigned long nowMillis = millis();
+    if (startFlag)
+    {
+        if (nowMillis - lastLedChange > 500) // blink LED if start flag on
+        {
+            ledState = !ledState;
+            digitalWrite(LED_BUILTIN, ledState);
+            lastLedChange = nowMillis;
+        }
+        if ((!triggerFlag) && ((now - lastPictureTime).totalseconds() >= pictureInterval))
+        {
+            DEBUG_SERIAL.println("Trigger flag set!");
+            triggerFlag = true;
+            lastPictureTime = now;
+        }
+    }
+    else if (startButton.getState())
+    {
+        DEBUG_SERIAL.println("Start flag set!");
+        startFlag = true;
+        lastPictureTime = now;
+    }
+    // triggerFlag = startFlag && (startButton.getState() || triggerFlag);    // for manual operation
 }
 
-void loop() {
-    #if DEBUG
+void loop()
+{
+#if DEBUG
     DateTime now = rtc.now();
     if ((now - lastTimePrint).totalseconds() >= 10)
     {
         sprintf(buffer, "%02d/%02d/%02d (%s) %02d:%02d:%02d",
-            now.year(), now.month(), now.day(), daysOfTheWeek[now.dayOfTheWeek()],
-            now.hour(), now.minute(), now.second());
+                now.year(), now.month(), now.day(), daysOfTheWeek[now.dayOfTheWeek()],
+                now.hour(), now.minute(), now.second());
         DEBUG_SERIAL.println();
         DEBUG_SERIAL.println(buffer);
         lastTimePrint = now;
     }
-    #endif
-
+#endif
     updateTriggerCondition();
     camsInTargetState = 0b11111111 << CAMERA_AMOUNT; // reset target state check
     // update each camera FSM and store whether or not it's in the target state
-    for (int i = 0; i < CAMERA_AMOUNT; i++) {
+    for (int i = 0; i < CAMERA_AMOUNT; i++)
+    {
         cameras[i].update();
         camsInTargetState |= (cameras[i].getState() == targetState) << i;
     }
-    if (camsInTargetState != camsInTargetState_old) {
+    if (camsInTargetState != camsInTargetState_old)
+    {
         DEBUG_SERIAL.print("camsInTargetState = ");
         DEBUG_SERIAL.println(camsInTargetState, 2);
     }
     // instruct cameras to either wind film or take a picture (depending on targetState)
-    if (camsInTargetState & (1 << currentCamera)) {   // if current cam in target state,
-        #if DEBUG
-        if (camsInTargetState != camsInTargetState_old) {
+    if (camsInTargetState & (1 << currentCamera)) // if current cam in target state,
+    {
+        if (camsInTargetState != camsInTargetState_old)
+        {
             DEBUG_SERIAL.print("Current camera ");
             DEBUG_SERIAL.print(currentCamera);
             DEBUG_SERIAL.println(" reached target state.");
         }
-        #endif
-        currentCamera++;    // go to next camera
-    } else {
+        currentCamera++; // go to next camera
+    }
+    else
+    {
         cameras[currentCamera].readyNext(); // otherwise, tell current cam to move to target state
     }
 
-    uint8_t notCamsInTargetState = ~camsInTargetState;  // need to do in separate step to prevent weird compiler warning
-    if (!notCamsInTargetState) {    // if all cams have reached the target state (i.e. they're done doing what they were doing)
+    uint8_t notCamsInTargetState = ~camsInTargetState; // need to do in separate step to prevent weird compiler warning
+    if (!notCamsInTargetState)
+    { // if all cams have reached the target state (i.e. they're done doing what they were doing)
         currentCamera = 0;
-        #if DEBUG
         if (camsInTargetState != camsInTargetState_old)
             DEBUG_SERIAL.println("All cameras have reached target state!");
-        #endif
-        if (targetState == UNWOUND) {   // after taking pictures, wind film immediately
+
+        if (targetState == UNWOUND)
+        { // after taking pictures, wind film immediately
             DEBUG_SERIAL.println("Changing target state to WOUND. (winding film)");
             targetState = WOUND;
-        } else if (targetState == WOUND && triggerFlag) {  // after winding film, wait until triggered to take pictures
+        }
+        else if (targetState == WOUND && triggerFlag)
+        { // after winding film, wait until triggered to take pictures
             DEBUG_SERIAL.println("Changing target state to UNWOUND. (taking pictures)");
             targetState = UNWOUND;
             triggerFlag = false;
@@ -182,7 +213,8 @@ void loop() {
     }
 
     // reset the current camera index when needed
-    if (currentCamera >= CAMERA_AMOUNT) {
+    if (currentCamera >= CAMERA_AMOUNT)
+    {
         currentCamera = 0;
         DEBUG_SERIAL.println("Reset current camera to 0.");
     }
